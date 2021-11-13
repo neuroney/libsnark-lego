@@ -208,21 +208,14 @@ r1cs_gg_ppzksnark_verification_key<ppT> r1cs_gg_ppzksnark_verification_key<ppT>:
     return result;
 }
 
-template <typename ppT>
-r1cs_gg_ppzksnark_keypair<ppT> r1cs_gg_ppzksnark_generator(const r1cs_gg_ppzksnark_constraint_system<ppT> &r1cs)
+template<typename ppT>
+auto r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(auto g1_generator, auto G2_gen, auto t, auto alpha, auto beta, auto gamma, auto delta, const auto r1cs)
 {
-    libff::enter_block("Call to r1cs_gg_ppzksnark_generator");
-
+    
     /* Make the B_query "lighter" if possible */
     r1cs_gg_ppzksnark_constraint_system<ppT> r1cs_copy(r1cs);
     r1cs_copy.swap_AB_if_beneficial();
-
-    /* Generate secret randomness */
-    const libff::Fr<ppT> t = libff::Fr<ppT>::random_element();
-    const libff::Fr<ppT> alpha = libff::Fr<ppT>::random_element();
-    const libff::Fr<ppT> beta = libff::Fr<ppT>::random_element();
-    const libff::Fr<ppT> gamma = libff::Fr<ppT>::random_element();
-    const libff::Fr<ppT> delta = libff::Fr<ppT>::random_element();
+    
     const libff::Fr<ppT> gamma_inverse = gamma.inverse();
     const libff::Fr<ppT> delta_inverse = delta.inverse();
 
@@ -294,7 +287,8 @@ r1cs_gg_ppzksnark_keypair<ppT> r1cs_gg_ppzksnark_generator(const r1cs_gg_ppzksna
 #endif
 
     libff::enter_block("Generating G1 MSM window table");
-    const libff::G1<ppT> g1_generator = libff::G1<ppT>::random_element();
+
+
     const size_t g1_scalar_count = non_zero_At + non_zero_Bt + qap.num_variables();
     const size_t g1_scalar_size = libff::Fr<ppT>::size_in_bits();
     const size_t g1_window_size = libff::get_exp_window_size<libff::G1<ppT> >(g1_scalar_count);
@@ -304,7 +298,6 @@ r1cs_gg_ppzksnark_keypair<ppT> r1cs_gg_ppzksnark_generator(const r1cs_gg_ppzksna
     libff::leave_block("Generating G1 MSM window table");
 
     libff::enter_block("Generating G2 MSM window table");
-    const libff::G2<ppT> G2_gen = libff::G2<ppT>::random_element();
     const size_t g2_scalar_count = non_zero_Bt;
     const size_t g2_scalar_size = libff::Fr<ppT>::size_in_bits();
     size_t g2_window_size = libff::get_exp_window_size<libff::G2<ppT> >(g2_scalar_count);
@@ -385,6 +378,28 @@ r1cs_gg_ppzksnark_keypair<ppT> r1cs_gg_ppzksnark_generator(const r1cs_gg_ppzksna
     vk.print_size();
 
     return r1cs_gg_ppzksnark_keypair<ppT>(std::move(pk), std::move(vk));
+}
+
+template <typename ppT>
+r1cs_gg_ppzksnark_keypair<ppT> r1cs_gg_ppzksnark_generator(const r1cs_gg_ppzksnark_constraint_system<ppT> &r1cs)
+{
+    libff::enter_block("Call to r1cs_gg_ppzksnark_generator");
+
+
+    /* Generate secret randomness */
+    const libff::Fr<ppT> t = libff::Fr<ppT>::random_element();
+    const libff::Fr<ppT> alpha = libff::Fr<ppT>::random_element();
+    const libff::Fr<ppT> beta = libff::Fr<ppT>::random_element();
+    const libff::Fr<ppT> gamma = libff::Fr<ppT>::random_element();
+
+    const libff::Fr<ppT> delta = libff::Fr<ppT>::random_element();
+    
+    const libff::G1<ppT> g1_generator = libff::G1<ppT>::random_element();
+    const libff::G2<ppT> G2_gen = libff::G2<ppT>::random_element();
+
+    return r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(g1_generator, G2_gen, t, alpha, beta, gamma, delta, r1cs);
+
+    
 }
 
 template <typename ppT>

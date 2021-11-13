@@ -16,11 +16,13 @@
 #include <libff/algebra/curves/public_params.hpp>
 
 #include <libsnark/relations/constraint_satisfaction_problems/r1cs/examples/r1cs_examples.hpp>
+#include <libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark/lego.hpp>
+
 
 namespace libsnark {
 
 template<typename ppT>
-bool run_lego(const auto &example);
+bool run_lego(const lego_example<ppT> &example);
 
 } // libsnark
 

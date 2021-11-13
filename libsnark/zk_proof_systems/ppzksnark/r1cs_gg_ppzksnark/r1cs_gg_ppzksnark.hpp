@@ -273,6 +273,8 @@ public:
         vk(std::move(vk))
     {}
 
+    static auto aux_kg(auto g1_generator, auto G2_gen, auto t, auto alpha, auto beta, auto gamma, auto delta, const auto r1cs);
+
     r1cs_gg_ppzksnark_keypair(r1cs_gg_ppzksnark_keypair<ppT> &&other) = default;
 };
 

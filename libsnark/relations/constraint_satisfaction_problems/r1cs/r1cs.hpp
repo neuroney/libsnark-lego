@@ -83,6 +83,7 @@ using r1cs_primary_input = std::vector<FieldT>;
 template<typename FieldT>
 using r1cs_auxiliary_input = std::vector<FieldT>;
 
+
 template<typename FieldT>
 using r1cs_variable_assignment = std::vector<FieldT>; /* note the changed name! (TODO: remove this comment after primary_input transition is complete) */
 
@@ -96,6 +97,7 @@ std::ostream& operator<<(std::ostream &out, const r1cs_constraint_system<FieldT>
 
 template<typename FieldT>
 std::istream& operator>>(std::istream &in, r1cs_constraint_system<FieldT> &cs);
+
 
 /**
  * A system of R1CS constraints looks like

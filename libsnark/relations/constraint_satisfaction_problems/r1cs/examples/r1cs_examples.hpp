@@ -17,6 +17,7 @@
 
 namespace libsnark {
 
+
 /**
  * A R1CS example comprises a R1CS constraint system, R1CS input, and R1CS witness.
  */

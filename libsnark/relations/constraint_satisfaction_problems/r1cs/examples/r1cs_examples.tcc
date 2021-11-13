@@ -21,6 +21,8 @@
 
 namespace libsnark {
 
+
+
 template<typename FieldT>
 r1cs_example<FieldT> generate_r1cs_example_with_field_input(const size_t num_constraints,
                                                             const size_t num_inputs)

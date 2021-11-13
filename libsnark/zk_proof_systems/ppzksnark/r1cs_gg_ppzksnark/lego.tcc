@@ -36,19 +36,33 @@ namespace libsnark {
 
 template<typename ppT>
     lego_keypair<ppT> lego_kg(const auto &cs) {
-        lego_keypair<ppT> kp(r1cs_gg_ppzksnark_generator<ppT>(cs));
-        return kp;
+
+    /* -- Gro16 setup -- */ 
+    const libff::Fr<ppT> t = libff::Fr<ppT>::random_element();
+    const libff::Fr<ppT> alpha = libff::Fr<ppT>::random_element();
+    const libff::Fr<ppT> beta = libff::Fr<ppT>::random_element();
+    const libff::Fr<ppT> gamma = libff::Fr<ppT>::random_element();
+    const libff::Fr<ppT> delta = libff::Fr<ppT>::random_element();
+
+    const libff::G1<ppT> g1_generator = libff::G1<ppT>::random_element();
+    const libff::G2<ppT> G2_gen = libff::G2<ppT>::random_element();
+
+    lego_keypair<ppT> kp(r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(g1_generator, G2_gen, t, alpha, beta, gamma, delta, cs));
+    /* -------- */ 
+
+    auto eta =  libff::Fr<ppT>::random_element();
+    return kp;
     }
 
 template<typename ppT>
-    lego_proof<ppT> lego_prv(const auto &pk, const auto &cm, const auto &opn, const auto &x, const auto &omega)  {
+    lego_proof<ppT> lego_prv(const auto &kp, const auto &cm, const auto &opn, const auto &x, const auto &omega)  {
         lego_proof<ppT> lego_prf;
 
         // produce Groth16 proof
-        // auto gro16prf = libsnark::r1cs_gg_ppzksnark_generator<ppT>(...);
+        lego_prf.gro16prf = r1cs_gg_ppzksnark_prover<ppT>(kp.gro16pk(), x, omega);
 
         // produce additional Groth 16 element
-        // auto D = ...
+        //auto D = ...
 
         // run CPLin on (cm, opn) and D
 
@@ -56,12 +70,12 @@ template<typename ppT>
     }
 
 template<typename ppT>
-    bool lego_vfy(const auto &vk, const auto &cm, const auto &x, const auto &prf) {
+    bool lego_vfy(const auto &kp, const auto &cm, const auto &x, const auto &prf) {
         // check gro16 prf
         // auto gro16prf = prf.gro16prf;
 
         // it's more like a modified version of this:
-        // bool gro16ans = libsnark::r1cs_gg_pprzksnark_vfy<ppT>(vk.gro16, x, gro16prf);
+        // bool gro16ans = libsnark::r1cs_gg_pprzksnark_vfy<ppT>(kp.gro16pvk(), x, gro16prf);
         bool gro16ans = true;
 
         bool cplin_ans = true;

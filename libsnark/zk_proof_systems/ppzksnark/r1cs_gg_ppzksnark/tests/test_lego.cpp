@@ -21,15 +21,16 @@
 using namespace libsnark;
 
 template<typename ppT>
-void test_lego(size_t num_constraints,
-                         size_t input_size)
+void test_lego(const size_t num_constraints,
+                const size_t size_pub_input,
+                const size_t size_comm_input)
 {
     libff::print_header("(enter) Test LegoGroth");
 
-    const bool test_serialization = true;
-    r1cs_example<libff::Fr<ppT> > example = generate_r1cs_example_with_binary_input<libff::Fr<ppT> >(num_constraints, input_size);
+    auto example = 
+        generate_lego_example_with_field_input<libff::Fr<ppT> >(num_constraints, size_pub_input, size_comm_input);
     const bool bit = true;
-    run_lego();
+    run_lego(example);
    // const bool bit = run_r1cs_gg_ppzksnark<ppT>(example, test_serialization);
     assert(bit);
 
@@ -41,5 +42,5 @@ int main()
     default_r1cs_gg_ppzksnark_pp::init_public_params();
     libff::start_profiling();
 
-    test_lego<default_r1cs_gg_ppzksnark_pp>(1000, 100);
+    test_lego<default_r1cs_gg_ppzksnark_pp>(1000, 100, 100);
 }
