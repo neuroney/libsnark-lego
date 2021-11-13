@@ -1,16 +1,18 @@
 /*
  * run_ppzksnark.cpp
  *
- *      Author: Ahmed Kosba
+ * 		// Runs legogroth16 on JSnark
+ *      Author: Matteo Campanelli
  */
 
 #include "CircuitReader.hpp"
 #include <libsnark/gadgetlib2/integration.hpp>
 #include <libsnark/gadgetlib2/adapters.hpp>
-#include <libsnark/zk_proof_systems/ppzksnark/r1cs_ppzksnark/examples/run_r1cs_ppzksnark.hpp>
-#include <libsnark/zk_proof_systems/ppzksnark/r1cs_ppzksnark/r1cs_ppzksnark.hpp>
-#include <libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark/examples/run_r1cs_gg_ppzksnark.hpp>
+
+#include <libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark/examples/run_lego.hpp>
+#include <libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark/lego.hpp>
 #include <libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark/r1cs_gg_ppzksnark.hpp>
+
 #include <libsnark/common/default_types/r1cs_gg_ppzksnark_pp.hpp>
 
 int main(int argc, char **argv) {
@@ -20,16 +22,8 @@ int main(int argc, char **argv) {
 	gadgetlib2::GadgetLibAdapter::resetVariableIndex();
 	ProtoboardPtr pb = gadgetlib2::Protoboard::create(gadgetlib2::R1P);
 
-	int inputStartIndex = 0;
-	if(argc == 4){
-		if(strcmp(argv[1], "gg") != 0){
-			cout << "Invalid Argument - Terminating.." << endl;
-			return -1;
-		} else{
-			cout << "Using ppzsknark in the generic group model [Gro16]." << endl;
-		}
-		inputStartIndex = 1;	
-	} 	
+	int inputStartIndex = 1;	
+	 	
 
 	// Read the circuit, evaluate, and translate constraints
 	CircuitReader reader(argv[1 + inputStartIndex], argv[2 + inputStartIndex], pb);
@@ -77,16 +71,10 @@ int main(int argc, char **argv) {
 	
 	const bool test_serialization = false;
 	bool successBit = false;
-	if(argc == 3) {
-		successBit = libsnark::run_r1cs_ppzksnark<libff::default_ec_pp>(example, test_serialization);
-
-	} else {
-		// The following code makes use of the observation that 
-		// libsnark::default_r1cs_gg_ppzksnark_pp is the same as libff::default_ec_pp (see r1cs_gg_ppzksnark_pp.hpp)
-		// otherwise, the following code won't work properly, as GadgetLib2 is hardcoded to use libff::default_ec_pp.
-		successBit = libsnark::run_r1cs_gg_ppzksnark<libsnark::default_r1cs_gg_ppzksnark_pp>(
-			example, test_serialization);
-	}
+	
+		successBit = libsnark::run_lego<libsnark::default_r1cs_gg_ppzksnark_pp>();
+		//(example, test_serialization);
+	
 
 	if(!successBit){
 		cout << "Problem occurred while running the ppzksnark algorithms .. " << endl;
