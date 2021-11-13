@@ -20,7 +20,7 @@
 namespace libsnark {
 
 template<typename ppT>
-bool run_lego();
+bool run_lego(const auto &example);
 
 } // libsnark
 

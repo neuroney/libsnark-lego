@@ -69,11 +69,9 @@ int main(int argc, char **argv) {
 
 	r1cs_example<FieldT> example(cs, primary_input, auxiliary_input);
 	
-	const bool test_serialization = false;
-	bool successBit = false;
 	
-		successBit = libsnark::run_lego<libsnark::default_r1cs_gg_ppzksnark_pp>();
-		//(example, test_serialization);
+	bool successBit = false;
+	successBit = libsnark::run_lego<libsnark::default_r1cs_gg_ppzksnark_pp>(example);
 	
 
 	if(!successBit){
