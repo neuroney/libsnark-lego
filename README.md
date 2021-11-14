@@ -1,5 +1,7 @@
-libsnark: a C++ library for zkSNARK proofs
+libsnark-lego: Extending libsnark with Lego capabilities
 ================================================================================
+
+(the rest of this readme is from the original libsnark library)
 
 --------------------------------------------------------------------------------
 Authors and contacts
