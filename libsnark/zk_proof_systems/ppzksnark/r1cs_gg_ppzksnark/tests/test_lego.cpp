@@ -28,7 +28,7 @@ void test_lego(const size_t num_constraints,
     libff::print_header("(enter) Test LegoGroth");
 
     auto example = 
-        generate_lego_example_with_field_input<libff::Fr<ppT> >(num_constraints, size_pub_input, size_comm_input);
+        generate_lego_example_with_field_input<ppT>(num_constraints, size_pub_input, size_comm_input);
     const bool bit = true;
     run_lego(example);
    // const bool bit = run_r1cs_gg_ppzksnark<ppT>(example, test_serialization);

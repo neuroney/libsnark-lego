@@ -43,7 +43,7 @@ bool run_lego(const lego_example<ppT> &example)
     printf("\n"); libff::print_indent(); libff::print_mem("after prover");
 
     libff::print_header("LegoGroth Verifier");
-    const bool ans = lego_vfy<ppT>(keypair, example.cm, example.primary_input, proof);
+    const bool ans = lego_vfy<ppT>(keypair, example.cm, example.x, proof);
     printf("\n"); libff::print_indent(); libff::print_mem("after verifier");
     printf("* The verification result is: %s\n", (ans ? "PASS" : "FAIL"));
 

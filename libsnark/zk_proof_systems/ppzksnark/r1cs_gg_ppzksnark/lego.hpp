@@ -74,6 +74,12 @@ struct lego_example {
 // NEXT: make conversion function from r1cs_example to lego_example
 
 
+// XXX
+template<typename ppT>
+auto gen_lego_example(auto cs, auto pub_input, auto comm_input, auto omega) {
+    lego_example<ppT> lego_ex;
+    return lego_ex;
+}
         
 template<typename ppT>
 lego_example<ppT> generate_lego_example_with_field_input(const size_t num_constraints,
@@ -86,7 +92,7 @@ lego_example<ppT> generate_lego_example_with_field_input(const size_t num_constr
      generate_r1cs_example_with_field_input<libff::Fr<ppT> >(num_constraints, sz_pub_plus_comm);
 
     _lego_set_slice(lego_ex.x, r1cs_ex.auxiliary_input, 0 , size_pub_input);
-    _lego_set_slice(lego_ex.u, r1cs_ex.auxiliary_input, size_pub_input+1, sz_pub_plus_comm);
+    _lego_set_slice(lego_ex.opn, r1cs_ex.auxiliary_input, size_pub_input+1, sz_pub_plus_comm);
     //lego_ex.cm = 
     lego_ex.omega = r1cs_ex.auxiliary_input;
 
