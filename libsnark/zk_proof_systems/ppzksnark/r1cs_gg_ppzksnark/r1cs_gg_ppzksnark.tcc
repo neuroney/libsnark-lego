@@ -209,7 +209,7 @@ r1cs_gg_ppzksnark_verification_key<ppT> r1cs_gg_ppzksnark_verification_key<ppT>:
 }
 
 template<typename ppT>
-auto r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(auto g1_generator, auto G2_gen, auto t, auto alpha, auto beta, auto gamma, auto delta, const auto r1cs)
+auto r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(auto g1_generator, auto G2_gen, auto t, auto alpha, auto beta, auto gamma, auto delta, const auto r1cs, libff::G1_vector<ppT> &gamma_ABC_g1_values)
 {
     
     /* Make the B_query "lighter" if possible */
@@ -350,7 +350,7 @@ auto r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(auto g1_generator, auto G2_gen, auto
 
     libff::enter_block("Encode gamma_ABC for R1CS verification key");
     libff::G1<ppT> gamma_ABC_g1_0 = gamma_ABC_0 * g1_generator;
-    libff::G1_vector<ppT> gamma_ABC_g1_values = batch_exp(g1_scalar_size, g1_window_size, g1_table, gamma_ABC);
+    gamma_ABC_g1_values = batch_exp(g1_scalar_size, g1_window_size, g1_table, gamma_ABC);
     libff::leave_block("Encode gamma_ABC for R1CS verification key");
     libff::leave_block("Generate R1CS verification key");
 
@@ -397,7 +397,9 @@ r1cs_gg_ppzksnark_keypair<ppT> r1cs_gg_ppzksnark_generator(const r1cs_gg_ppzksna
     const libff::G1<ppT> g1_generator = libff::G1<ppT>::random_element();
     const libff::G2<ppT> G2_gen = libff::G2<ppT>::random_element();
 
-    return r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(g1_generator, G2_gen, t, alpha, beta, gamma, delta, r1cs);
+    libff::G1_vector<ppT> gamma_ABC_g1_values;
+
+    return r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(g1_generator, G2_gen, t, alpha, beta, gamma, delta, r1cs, gamma_ABC_g1_values);
 
     
 }
@@ -536,18 +538,11 @@ r1cs_gg_ppzksnark_processed_verification_key<ppT> r1cs_gg_ppzksnark_verifier_pro
 }
 
 template <typename ppT>
-bool r1cs_gg_ppzksnark_online_verifier_weak_IC(const r1cs_gg_ppzksnark_processed_verification_key<ppT> &pvk,
-                                               const r1cs_gg_ppzksnark_primary_input<ppT> &primary_input,
-                                               const r1cs_gg_ppzksnark_proof<ppT> &proof)
+bool vfy_aux(const r1cs_gg_ppzksnark_processed_verification_key<ppT> &pvk,
+                                               const r1cs_gg_ppzksnark_proof<ppT> &proof,
+                                               const libff::G1<ppT> &acc)
 {
-    libff::enter_block("Call to r1cs_gg_ppzksnark_online_verifier_weak_IC");
-    assert(pvk.gamma_ABC_g1.domain_size() >= primary_input.size());
-
-    libff::enter_block("Accumulate input");
-    const accumulation_vector<libff::G1<ppT> > accumulated_IC = pvk.gamma_ABC_g1.template accumulate_chunk<libff::Fr<ppT> >(primary_input.begin(), primary_input.end(), 0);
-    const libff::G1<ppT> &acc = accumulated_IC.first;
-    libff::leave_block("Accumulate input");
-
+    
     bool result = true;
 
     libff::enter_block("Check if the proof is well-formed");
@@ -585,7 +580,6 @@ bool r1cs_gg_ppzksnark_online_verifier_weak_IC(const r1cs_gg_ppzksnark_processed
     libff::leave_block("Check QAP divisibility");
     libff::leave_block("Online pairing computations");
 
-    libff::leave_block("Call to r1cs_gg_ppzksnark_online_verifier_weak_IC");
 
     return result;
 }
@@ -690,6 +684,26 @@ bool r1cs_gg_ppzksnark_affine_verifier_weak_IC(const r1cs_gg_ppzksnark_verificat
     libff::leave_block("Call to r1cs_gg_ppzksnark_affine_verifier_weak_IC");
 
     return result;
+}
+
+// TODO: make aux that takes aux input parameter
+template <typename ppT>
+bool r1cs_gg_ppzksnark_online_verifier_weak_IC(const r1cs_gg_ppzksnark_processed_verification_key<ppT> &pvk,
+                                               const r1cs_gg_ppzksnark_primary_input<ppT> &primary_input,
+                                               const r1cs_gg_ppzksnark_proof<ppT> &proof)
+{
+    libff::enter_block("Call to r1cs_gg_ppzksnark_online_verifier_weak_IC");
+    assert(pvk.gamma_ABC_g1.domain_size() >= primary_input.size());
+
+    libff::enter_block("Accumulate input");
+    const accumulation_vector<libff::G1<ppT> > accumulated_IC = pvk.gamma_ABC_g1.template accumulate_chunk<libff::Fr<ppT> >(primary_input.begin(), primary_input.end(), 0);
+    const libff::G1<ppT> &acc = accumulated_IC.first;
+    libff::leave_block("Accumulate input");
+
+    bool res = vfy_aux(pvk, proof, acc);
+    libff::leave_block("Call to r1cs_gg_ppzksnark_online_verifier_weak_IC");
+
+    return res;
 }
 
 } // libsnark

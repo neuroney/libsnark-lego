@@ -39,11 +39,11 @@ bool run_lego(const lego_example<ppT> &example)
 
 
     libff::print_header("LegoGroth Prover");
-    auto proof = lego_prv<ppT>(keypair, example.cm, example.opn, example.x, example.omega);
+    auto proof = lego_prv<ppT>(keypair,  example.x, example.cm, example.opn, example.omega);
     printf("\n"); libff::print_indent(); libff::print_mem("after prover");
 
     libff::print_header("LegoGroth Verifier");
-    const bool ans = lego_vfy<ppT>(keypair, example.cm, example.x, proof);
+    const bool ans = lego_vfy<ppT>(keypair, example.x, example.cm, proof);
     printf("\n"); libff::print_indent(); libff::print_mem("after verifier");
     printf("* The verification result is: %s\n", (ans ? "PASS" : "FAIL"));
 

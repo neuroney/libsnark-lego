@@ -25,7 +25,11 @@ Declaration of interfaces for LegoGroth
 
 #include <libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark/r1cs_gg_ppzksnark.hpp>
 
+
+#include <libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark/cplink.hpp>
+
 namespace libsnark {
+
 
 /* input related objects */
 
@@ -50,6 +54,14 @@ class lego_constraint_system {
     public:
         r1cs_constraint_system<FieldT> cs;
         size_t comm_input_size; // |cs.primary_input_size| = |public_x| + comm_input_size 
+
+        size_t x_size() const {
+            return cs.primary_input_size-comm_input_size;
+        }
+
+        size_t opn_size() const {
+            return comm_input_size;
+        }
 };
 
 
@@ -67,17 +79,15 @@ struct lego_example {
     CommT cm;
 
     auto r1cs() const {
-        return lego_cs.cs;
+        return lego_cs;
     }
 };
 
-// NEXT: make conversion function from r1cs_example to lego_example
-
-
-// XXX
+// FIXME
 template<typename ppT>
 auto gen_lego_example(auto cs, auto pub_input, auto comm_input, auto omega) {
     lego_example<ppT> lego_ex;
+    assert(0); // XXX
     return lego_ex;
 }
         
@@ -92,7 +102,7 @@ lego_example<ppT> generate_lego_example_with_field_input(const size_t num_constr
      generate_r1cs_example_with_field_input<libff::Fr<ppT> >(num_constraints, sz_pub_plus_comm);
 
     _lego_set_slice(lego_ex.x, r1cs_ex.auxiliary_input, 0 , size_pub_input);
-    _lego_set_slice(lego_ex.opn, r1cs_ex.auxiliary_input, size_pub_input+1, sz_pub_plus_comm);
+    _lego_set_slice(lego_ex.opn, r1cs_ex.auxiliary_input, size_pub_input, sz_pub_plus_comm);
     //lego_ex.cm = 
     lego_ex.omega = r1cs_ex.auxiliary_input;
 
@@ -102,16 +112,24 @@ lego_example<ppT> generate_lego_example_with_field_input(const size_t num_constr
 
 /* proof related objects */
 
+
+
 template<typename ppT>
 class lego_keypair {
     public: 
+
+    std::vector<libff::G1<ppT>> ck;
    
     r1cs_gg_ppzksnark_keypair<ppT> gro16keypair; 
     r1cs_gg_ppzksnark_processed_verification_key<ppT> pvk;
 
-    libff::G1<ppT> eta_delta;
+    libff::G1<ppT> eta_delta_inv_g1;
+    libff::G1<ppT> eta_gamma_inv_g1;
 
-    // cplink_k;
+    std::vector<libff::G1<ppT>> gamma_ABC_g1_x, gamma_ABC_g1_u;
+
+
+    cplink_key<ppT> lnk_key;
 
     lego_keypair( r1cs_gg_ppzksnark_keypair<ppT> _gro16keypair) :
         gro16keypair(_gro16keypair)
@@ -136,17 +154,17 @@ struct lego_proof {
     libff::G1<ppT> g_D;
 
     // cplink_prf
-
+    libff::G1<ppT> lnk_prf;
 };
 
 template<typename ppT>
     lego_keypair<ppT> lego_kg(const auto &cs);
 
 template<typename ppT>
-    lego_proof<ppT> lego_prv(const auto &kp, const auto &cm, const auto &opn, const auto &x, const auto &omega);
+    lego_proof<ppT> lego_prv(const auto &kp, const auto &x, const auto &cm, const auto &opn,  const auto &omega);
 
 template<typename ppT>
-    bool lego_vfy(const auto &kp, const auto &cm, const auto &x, const auto &prf);
+    bool lego_vfy(const auto &kp, const auto &x, const auto &cm, const auto &prf);
 
 }
 
