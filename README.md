@@ -1,4 +1,4 @@
-libsnark-lego: Extending libsnark with Lego capabilities
+libsnark-lego: Extending libsnark with Lego capabilities (compatible with JSnark)
 ================================================================================
 
 (the rest of this readme is from the original libsnark library)
