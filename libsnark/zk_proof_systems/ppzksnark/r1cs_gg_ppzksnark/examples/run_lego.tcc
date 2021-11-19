@@ -34,7 +34,7 @@ bool run_lego(const lego_example<ppT> &example)
     libff::enter_block("Call to run_lego");
 
     libff::print_header("LegoGroth Generator");
-    lego_keypair<ppT> keypair(lego_kg<ppT>(example.r1cs()) );
+    lego_keypair<ppT> keypair(lego_kg<ppT>(example.ck, example.r1cs()) );
     printf("\n"); libff::print_indent(); libff::print_mem("after generator");
 
 

@@ -745,28 +745,28 @@ target_link_libraries(
 )
 
 
-file(MAKE_DIRECTORY jsnark_interface)
+file(MAKE_DIRECTORY jsnark_lego_interface)
 
 add_executable(
-  run_ppzksnark
+  run_setmem_lego
 
-  jsnark_interface/Util.hpp
-  jsnark_interface/Util.cpp
-  jsnark_interface/CircuitReader.hpp
-  jsnark_interface/CircuitReader.cpp
-  jsnark_interface/run_ppzksnark.cpp
+  jsnark_lego_interface/Util.hpp
+  jsnark_lego_interface/Util.cpp
+  jsnark_lego_interface/CircuitReader.hpp
+  jsnark_lego_interface/CircuitReader.cpp
+  jsnark_lego_interface/run_setmem_lego.cpp
 )
 target_link_libraries(
-  run_ppzksnark
+  run_setmem_lego
 
   snark
 )
 
-set_target_properties(run_ppzksnark
+set_target_properties(run_setmem_lego
     PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "jsnark_interface/"
-    LIBRARY_OUTPUT_DIRECTORY "jsnark_interface/"
-    RUNTIME_OUTPUT_DIRECTORY "jsnark_interface/"
+    ARCHIVE_OUTPUT_DIRECTORY "jsnark_lego_interface/"
+    LIBRARY_OUTPUT_DIRECTORY "jsnark_lego_interface/"
+    RUNTIME_OUTPUT_DIRECTORY "jsnark_lego_interface/"
 )
 
 include(CTest)

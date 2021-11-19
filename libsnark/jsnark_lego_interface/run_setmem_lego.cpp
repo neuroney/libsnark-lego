@@ -69,11 +69,12 @@ int main(int argc, char **argv) {
 
 	//r1cs_example<FieldT> example(cs, primary_input, auxiliary_input);
 
-	auto pub_input = primary_input;
-	auto comm_input = primary_input; // XXX: modify this 
+	// NB: here we simplify this having all public input committed. Could be otherwise if we changed interface with JSnark
+	auto pub_input = vector<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>>(0);
+	auto committable_input = primary_input; 
 	auto omega = auxiliary_input;
 
-	auto example = libsnark::gen_lego_example<libsnark::default_r1cs_gg_ppzksnark_pp>(cs, pub_input, comm_input, omega); 
+	auto example = libsnark::gen_lego_example<libsnark::default_r1cs_gg_ppzksnark_pp>(cs, pub_input, committable_input, omega); 
 	
 	
 	bool successBit = false;

@@ -34,20 +34,22 @@ Implementation of interfaces for LegoGroth
 
 namespace libsnark {
 
-template<typename ppT>
-    lego_keypair<ppT> lego_kg(const auto &cs) {
 
+template<typename ppT>
+    lego_ck<ppT> lego_gen_ck(auto opn_size) {
         const libff::G1<ppT> g1_generator = libff::G1<ppT>::random_element();
-        const libff::G2<ppT> G2_gen = libff::G2<ppT>::random_element();
-        
-        /* CK setup */
-        // NB: could also be produced externally and passed as a parameter
-        std::vector<libff::G1<ppT>> ck(cs.opn_size());
+
+        std::vector<libff::G1<ppT>> ck(opn_size);
         for (auto i = 0; i < ck.size(); i++) {
             ck[i] = libff::Fr<ppT>::random_element()*g1_generator;
         }
+        return ck;
+    }
 
-        
+template<typename ppT>
+    lego_keypair<ppT> lego_kg(const auto &ck, const auto &cs) {
+        const libff::G1<ppT> g1_generator = libff::G1<ppT>::random_element();
+        const libff::G2<ppT> G2_gen = libff::G2<ppT>::random_element();
 
         /* -- Gro16 setup -- */ 
         auto gro16cs = cs.cs;
@@ -128,7 +130,7 @@ template<typename ppT>
 
 
         bool cplin_ans = true;
-        // cplin_ans = cplin_vfy(...);
+        cplin_ans = cplink_vfy<ppT>(kp.lnk_key, cm, prf.g_D, prf.lnk_prf);
         return gro16ans && cplin_ans;
     }
 }

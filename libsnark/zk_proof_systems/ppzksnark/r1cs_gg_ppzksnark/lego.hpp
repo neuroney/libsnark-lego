@@ -31,6 +31,19 @@ Declaration of interfaces for LegoGroth
 namespace libsnark {
 
 
+/* commitment-related */
+template<typename ppT>
+using lego_ck = std::vector<libff::G1<ppT>>;
+
+
+template<typename ppT>
+    lego_ck<ppT> lego_gen_ck(auto opn_size);
+
+template<typename ppT>
+    auto lego_commit(const lego_ck<ppT> &ck, const auto &opn) {
+        return multiExpMA< libff::G1<ppT>, libff::Fr<ppT> >(ck, opn);
+}
+
 /* input related objects */
 
 template<typename FieldT>
@@ -78,16 +91,26 @@ struct lego_example {
 
     CommT cm;
 
+    lego_ck<ppT> ck;
+
     auto r1cs() const {
         return lego_cs;
     }
+
 };
 
 // FIXME
 template<typename ppT>
-auto gen_lego_example(auto cs, auto pub_input, auto comm_input, auto omega) {
+auto gen_lego_example(auto cs, auto pub_input, auto committable_input, auto omega) {
     lego_example<ppT> lego_ex;
-    assert(0); // XXX
+    lego_ex.lego_cs.cs = cs;
+    lego_ex.lego_cs.comm_input_size = committable_input.size();
+
+    lego_ex.ck = lego_gen_ck<ppT>(committable_input.size());
+    lego_ex.cm = lego_commit<ppT>(lego_ex.ck, committable_input);
+    lego_ex.opn = committable_input;
+    lego_ex.omega = omega;
+
     return lego_ex;
 }
         
@@ -103,8 +126,15 @@ lego_example<ppT> generate_lego_example_with_field_input(const size_t num_constr
 
     _lego_set_slice(lego_ex.x, r1cs_ex.auxiliary_input, 0 , size_pub_input);
     _lego_set_slice(lego_ex.opn, r1cs_ex.auxiliary_input, size_pub_input, sz_pub_plus_comm);
-    //lego_ex.cm = 
+
+    
+    lego_ex.ck = lego_gen_ck<ppT>(size_comm_input);
+    lego_ex.cm = lego_commit<ppT>(lego_ex.ck, lego_ex.opn);
+
     lego_ex.omega = r1cs_ex.auxiliary_input;
+
+    lego_ex.lego_cs.cs = r1cs_ex.constraint_system;
+    lego_ex.lego_cs.comm_input_size = size_comm_input;
 
     return lego_ex;
 }
@@ -158,7 +188,7 @@ struct lego_proof {
 };
 
 template<typename ppT>
-    lego_keypair<ppT> lego_kg(const auto &cs);
+    lego_keypair<ppT> lego_kg(const auto &ck, const auto &cs);
 
 template<typename ppT>
     lego_proof<ppT> lego_prv(const auto &kp, const auto &x, const auto &cm, const auto &opn,  const auto &omega);
