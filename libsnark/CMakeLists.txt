@@ -45,6 +45,35 @@ add_library(
   relations/ram_computations/rams/fooram/fooram_aux.cpp
   relations/ram_computations/rams/tinyram/tinyram_aux.cpp
 )
+add_library(
+  membership 
+  STATIC
+
+  zk_proof_systems/ppzksnark/membership/membership.cpp
+)
+target_include_directories(
+  membership
+  PUBLIC
+
+  snark
+  ${DEPENDS_DIR}/libfqfft
+  ${DEPENDS_DIR}/libff
+)
+target_link_libraries(
+  membership
+
+  OpenSSL::Crypto
+  gmp
+  flint
+
+  ff
+  ${GMP_LIBRARIES}
+  ${GMPXX_LIBRARIES}
+  ${CRYPTO_LIBRARIES}
+  ${PROCPS_LIBRARIES}
+  ${LIBFF_LIBRARIES}
+  ${SNARK_EXTRALIBS}
+)
 if("${USE_LINKED_LIBRARIES}")
   target_link_libraries(
     snark
@@ -338,6 +367,29 @@ target_link_libraries(
 
   snark
   ${Boost_LIBRARIES}
+)
+
+# Membership
+set(
+  ${SOURCE_FILES}
+
+  zk_proof_systems/ppzksnark/membership/MembershipTest.cpp
+  zk_proof_systems/ppzksnark/membership/membership.cpp
+)
+include_directories("zk_proof_systems/ppzksnark/membership")
+
+add_executable(
+  Membershiptest
+
+  zk_proof_systems/ppzksnark/membership/MembershipTest.cpp
+  zk_proof_systems/ppzksnark/membership/membership.cpp
+)
+
+target_link_libraries(
+  Membershiptest
+  membership
+
+  snark
 )
 
 # Tests
