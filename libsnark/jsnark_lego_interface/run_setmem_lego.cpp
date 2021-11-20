@@ -15,11 +15,9 @@
 
 #include <libsnark/common/default_types/r1cs_gg_ppzksnark_pp.hpp>
 
-int main(int argc, char **argv) {
 
-	libff::start_profiling();
-	gadgetlib2::initPublicParamsFromDefaultPp();
-	gadgetlib2::GadgetLibAdapter::resetVariableIndex();
+void init_input_and_relation(char **argv, auto &input_rel)
+{
 	ProtoboardPtr pb = gadgetlib2::Protoboard::create(gadgetlib2::R1P);
 
 	int inputStartIndex = 1;	
@@ -63,7 +61,7 @@ int main(int argc, char **argv) {
         // A follow-up will be added.
 	if(!cs.is_satisfied(primary_input, auxiliary_input)){
 		cout << "The constraint system is  not satisifed by the value assignment - Terminating." << endl;
-		return -1;
+		exit(-1);
 	}
 
 
@@ -74,11 +72,22 @@ int main(int argc, char **argv) {
 	auto committable_input = primary_input; 
 	auto omega = auxiliary_input;
 
-	auto example = libsnark::gen_lego_example<libsnark::default_r1cs_gg_ppzksnark_pp>(cs, pub_input, committable_input, omega); 
+	input_rel = libsnark::gen_lego_example<libsnark::default_r1cs_gg_ppzksnark_pp>(cs, pub_input, committable_input, omega); 
+}
+
+int main(int argc, char **argv) {
+
+	using rel_input_t = lego_example<libsnark::default_r1cs_gg_ppzksnark_pp>;
+
+	libff::start_profiling();
+	gadgetlib2::initPublicParamsFromDefaultPp();
+	gadgetlib2::GadgetLibAdapter::resetVariableIndex();
 	
+	rel_input_t relation_and_input;
+	init_input_and_relation(argv, relation_and_input);
 	
 	bool successBit = false;
-	successBit = libsnark::run_lego<libsnark::default_r1cs_gg_ppzksnark_pp>(example);
+	successBit = libsnark::run_lego<libsnark::default_r1cs_gg_ppzksnark_pp>(relation_and_input);
 	
 
 	if(!successBit){

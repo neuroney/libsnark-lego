@@ -40,3 +40,5 @@ if(NOT "${USE_LINKED_LIBRARIES}")
   OPTION(IS_LIBFQFFT_PARENT OFF)
   add_subdirectory(libfqfft)
 endif()
+
+add_subdirectory(fmt EXCLUDE_FROM_ALL)
