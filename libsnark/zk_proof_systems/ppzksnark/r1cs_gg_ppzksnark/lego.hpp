@@ -124,8 +124,8 @@ lego_example<ppT> generate_lego_example_with_field_input(const size_t num_constr
     r1cs_example< libff::Fr<ppT> > r1cs_ex =
      generate_r1cs_example_with_field_input<libff::Fr<ppT> >(num_constraints, sz_pub_plus_comm);
 
-    _lego_set_slice(lego_ex.x, r1cs_ex.auxiliary_input, 0 , size_pub_input);
-    _lego_set_slice(lego_ex.opn, r1cs_ex.auxiliary_input, size_pub_input, sz_pub_plus_comm);
+    _lego_set_slice(lego_ex.x, r1cs_ex.primary_input, 0 , size_pub_input);
+    _lego_set_slice(lego_ex.opn, r1cs_ex.primary_input, size_pub_input, sz_pub_plus_comm);
 
     
     lego_ex.ck = lego_gen_ck<ppT>(size_comm_input);

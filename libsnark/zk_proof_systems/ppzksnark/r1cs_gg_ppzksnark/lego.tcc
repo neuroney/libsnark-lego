@@ -55,7 +55,7 @@ template<typename ppT>
         auto gro16cs = cs.cs;
         const libff::Fr<ppT> t = libff::Fr<ppT>::random_element();
         const libff::Fr<ppT> alpha = libff::Fr<ppT>::random_element();
-        const libff::Fr<ppT> beta = libff::Fr<ppT>::random_element();
+        const libff::Fr<ppT> beta = libff::Fr<ppT>::random_element(); 
         const libff::Fr<ppT> gamma = libff::Fr<ppT>::random_element();
         const libff::Fr<ppT> delta = libff::Fr<ppT>::random_element();
 
@@ -77,8 +77,12 @@ template<typename ppT>
         kp.eta_delta_inv_g1 = eta_delta_inv*g1_generator;
         kp.eta_gamma_inv_g1 = eta_gamma_inv*g1_generator;
 
-        _lego_set_slice( kp.gamma_ABC_g1_x, gamma_ABC_g1_values, 0 , cs.x_size()+1);
-        _lego_set_slice( kp.gamma_ABC_g1_u, gamma_ABC_g1_values, cs.x_size()+1, cs.x_size()+1+cs.opn_size());
+
+        std::cout << "###\n";
+        printf("### Reading 0..%d values from something of size %d\n", cs.x_size()-1, gamma_ABC_g1_values.size());
+        _lego_set_slice( kp.gamma_ABC_g1_x, gamma_ABC_g1_values, 0 , cs.x_size());
+        printf("### Reading %d..%d values from something of size %d\n", cs.x_size(), cs.x_size()+cs.opn_size()-1, gamma_ABC_g1_values.size());
+        _lego_set_slice( kp.gamma_ABC_g1_u, gamma_ABC_g1_values, cs.x_size(), cs.x_size()+cs.opn_size());
 
         /* END of ccGro16 KG */
 

@@ -356,7 +356,6 @@ auto r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(auto g1_generator, auto G2_gen, auto
     libff::leave_block("Encode gamma_ABC for R1CS verification key");
     libff::leave_block("Generate R1CS verification key");
 
-    libff::leave_block("Call to r1cs_gg_ppzksnark_generator");
 
     accumulation_vector<libff::G1<ppT> > gamma_ABC_g1(std::move(gamma_ABC_g1_0), std::move(gamma_ABC_g1_values_move));
 
@@ -401,9 +400,10 @@ r1cs_gg_ppzksnark_keypair<ppT> r1cs_gg_ppzksnark_generator(const r1cs_gg_ppzksna
 
     libff::G1_vector<ppT> gamma_ABC_g1_values;
 
-    return r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(g1_generator, G2_gen, t, alpha, beta, gamma, delta, r1cs, gamma_ABC_g1_values);
-
-    
+    auto result = r1cs_gg_ppzksnark_keypair<ppT>::aux_kg(g1_generator, G2_gen, t, alpha, beta, gamma, delta, r1cs, gamma_ABC_g1_values);
+    libff::leave_block("Call to r1cs_gg_ppzksnark_generator");
+    return result;
+   
 }
 
 template <typename ppT>

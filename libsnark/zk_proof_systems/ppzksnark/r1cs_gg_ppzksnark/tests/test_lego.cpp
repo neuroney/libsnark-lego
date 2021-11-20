@@ -25,16 +25,16 @@ void test_lego(const size_t num_constraints,
                 const size_t size_pub_input,
                 const size_t size_comm_input)
 {
-    libff::print_header("(enter) Test LegoGroth");
+    //libff::print_header("(enter) Test LegoGroth");
 
     auto example = 
         generate_lego_example_with_field_input<ppT>(num_constraints, size_pub_input, size_comm_input);
-    const bool bit = true;
-    run_lego(example);
+    bool bit = true;
+    bit = run_lego(example);
    // const bool bit = run_r1cs_gg_ppzksnark<ppT>(example, test_serialization);
     assert(bit);
 
-    libff::print_header("(leave) Test LegoGroth");
+    //libff::print_header("(leave) Test LegoGroth");
 }
 
 int main()
