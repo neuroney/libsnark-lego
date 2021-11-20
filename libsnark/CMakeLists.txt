@@ -2,6 +2,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
+add_definitions(-DFMT_HEADER_ONLY)
+
+
 set(SNARK_EXTRALIBS)
 if(${CURVE} STREQUAL "BN128")
   set(
@@ -103,6 +106,7 @@ else()
     PUBLIC
     ${DEPENDS_DIR}/libff
     ${DEPENDS_DIR}/libfqfft
+    ${DEPENDS_DIR}/fmt/include
   )
 endif()
 

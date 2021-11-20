@@ -15,8 +15,15 @@
 
 #include <libsnark/common/default_types/r1cs_gg_ppzksnark_pp.hpp>
 
+#include "benchmark.h"
 
-void init_input_and_relation(char **argv, auto &input_rel)
+//#include <format>
+
+#include <filesystem>
+
+using namespace std;
+
+void init_setmem_input_and_relation(string arith_file, string input_file, auto &input_rel)
 {
 	ProtoboardPtr pb = gadgetlib2::Protoboard::create(gadgetlib2::R1P);
 
@@ -24,7 +31,11 @@ void init_input_and_relation(char **argv, auto &input_rel)
 	 	
 
 	// Read the circuit, evaluate, and translate constraints
-	CircuitReader reader(argv[1 + inputStartIndex], argv[2 + inputStartIndex], pb);
+	const size_t MAX_FILE_NAME  = 256;
+	char arith_c_str[MAX_FILE_NAME], input_c_str[MAX_FILE_NAME];
+	strcpy(arith_c_str, arith_file.c_str()); 
+	strcpy(input_c_str, input_file.c_str()); 
+	CircuitReader reader(arith_c_str, input_c_str, pb);
 	r1cs_constraint_system<FieldT> cs = get_constraint_system_from_gadgetlib2(
 			*pb);
 	const r1cs_variable_assignment<FieldT> full_assignment =
@@ -75,6 +86,7 @@ void init_input_and_relation(char **argv, auto &input_rel)
 	input_rel = libsnark::gen_lego_example<libsnark::default_r1cs_gg_ppzksnark_pp>(cs, pub_input, committable_input, omega); 
 }
 
+
 int main(int argc, char **argv) {
 
 	using rel_input_t = lego_example<libsnark::default_r1cs_gg_ppzksnark_pp>;
@@ -83,8 +95,15 @@ int main(int argc, char **argv) {
 	gadgetlib2::initPublicParamsFromDefaultPp();
 	gadgetlib2::GadgetLibAdapter::resetVariableIndex();
 	
+	size_t batch_size = 1;
+	const string arith_file_fmt = "../setmem_rel_inputs/setmem{}.arith";
+	const string input_file_fmt = "../setmem_rel_inputs/setmem{}.in";
+
 	rel_input_t relation_and_input;
-	init_input_and_relation(argv, relation_and_input);
+	string arith_file = fmt::format(arith_file_fmt, batch_size);
+	string input_file = fmt::format(input_file_fmt, batch_size);
+
+	init_setmem_input_and_relation(arith_file, input_file, relation_and_input);
 	
 	bool successBit = false;
 	successBit = libsnark::run_lego<libsnark::default_r1cs_gg_ppzksnark_pp>(relation_and_input);

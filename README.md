@@ -1,6 +1,15 @@
 libsnark-lego: Extending libsnark with Lego capabilities (compatible with JSnark)
 ================================================================================
 
+To build the setmem benchmarks, first follow the cmake preliminaries as from libsnark (below).
+Then, from the "build" directory launch:
+
+`make -j8 bench_setmem_lego`
+
+To run:
+
+`libsnark/jsnark_lego_interface/bench_setmem_lego`
+
 (the rest of this readme is from the original libsnark library)
 
 --------------------------------------------------------------------------------
