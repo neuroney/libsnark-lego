@@ -782,6 +782,8 @@ add_executable(
   jsnark_lego_interface/CircuitReader.hpp
   jsnark_lego_interface/CircuitReader.cpp
   jsnark_lego_interface/bench_setmem_lego.cpp
+  jsnark_lego_interface/benchmark.h
+  jsnark_lego_interface/benchmark.cc
 )
 target_link_libraries(
   bench_setmem_lego

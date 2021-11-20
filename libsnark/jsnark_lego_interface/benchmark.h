@@ -12,6 +12,8 @@
 #include <vector>
 #include <functional>
 
+#include <cassert>
+
 #include "fmt/format.h"
 
 using namespace std;

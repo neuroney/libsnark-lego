@@ -87,32 +87,70 @@ void init_setmem_input_and_relation(string arith_file, string input_file, auto &
 }
 
 
+auto msecs(auto secs)
+{
+	return secs/1000000;
+}
+
 int main(int argc, char **argv) {
 
-	using rel_input_t = lego_example<libsnark::default_r1cs_gg_ppzksnark_pp>;
+	using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
+	using rel_input_t = lego_example<def_pp>;
+
+	/* Benchmark parameters */
+	size_t nreps = 1;
+	/* ---- */
 
 	libff::start_profiling();
 	gadgetlib2::initPublicParamsFromDefaultPp();
 	gadgetlib2::GadgetLibAdapter::resetVariableIndex();
 	
-	size_t batch_size = 1;
+
 	const string arith_file_fmt = "../setmem_rel_inputs/setmem{}.arith";
 	const string input_file_fmt = "../setmem_rel_inputs/setmem{}.in";
 
+
+
 	rel_input_t relation_and_input;
-	string arith_file = fmt::format(arith_file_fmt, batch_size);
-	string input_file = fmt::format(input_file_fmt, batch_size);
-
-	init_setmem_input_and_relation(arith_file, input_file, relation_and_input);
-	
 	bool successBit = false;
-	successBit = libsnark::run_lego<libsnark::default_r1cs_gg_ppzksnark_pp>(relation_and_input);
-	
+	lego_proof<def_pp> cparith_prf; 
+  
 
-	if(!successBit){
-		cout << "Problem occurred while running the ppzksnark algorithms .. " << endl;
-		return -1;
-	}	
+
+	size_t batch_size = 1;
+
+	{
+		/*  Block specific on batch size */ 
+		string arith_file = fmt::format(arith_file_fmt, batch_size);
+		string input_file = fmt::format(input_file_fmt, batch_size);
+
+		// setup 
+		init_setmem_input_and_relation(arith_file, input_file, relation_and_input);
+		libff::print_header("## LegoGroth Generator");
+		lego_keypair<def_pp> keypair(lego_kg<def_pp>(relation_and_input.ck, relation_and_input.r1cs()) );
+
+		// defined bench functions
+		auto arith_prv_fn = [&] {
+			cparith_prf = lego_prv<def_pp>(keypair,  relation_and_input.x, 
+				relation_and_input.cm, relation_and_input.opn, relation_and_input.omega);
+		};
+		auto arith_vfy_fn = [&] {
+			successBit = lego_vfy<def_pp>(keypair, relation_and_input.x, relation_and_input.cm, cparith_prf);
+		};
+
+		// run benchmarks
+		libff::print_header("## Benchmarking CPArith Prover");
+		fmt_time(fmt::format("## cparith_prv{}", batch_size), 
+			TimeDelta::runAndAverage(arith_prv_fn, nreps));
+
+		libff::print_header("## Benchmarking CPArith Verifier");
+		fmt_time(fmt::format("## cparith_vfy{}", batch_size), 
+			TimeDelta::runAndAverage(arith_vfy_fn, nreps));
+
+
+	
+	}
+
 	return 0;
 }
 
