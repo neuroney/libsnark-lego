@@ -15,15 +15,18 @@
 #include <libsnark/common/default_types/r1cs_gg_ppzksnark_pp.hpp>   
 #include <libsnark/zk_proof_systems/ppzksnark/membership/membership_snark.hpp>
 #include <libsnark/relations/constraint_satisfaction_problems/r1cs/examples/r1cs_examples.hpp>
-#include <libsnark/jsnark_interface/CircuitReader.hpp>
+//#include <libsnark/jsnark_interface/CircuitReader.hpp>
 
 
 
 
 using namespace std;
+using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
+
 
 
 namespace membership{
+
     // RSA numbre is from #https://en.wikipedia.org/wiki/RSA_numbers#RSA-2048
     const char* RSA_2048 = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784406918290641249515082189298559149176184502808489120072844992687392807287776735971418347270261896375014971824691165077613379859095700097330459748808428401797429100642458691817195118746121515172654632282216869987549182422433637259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133844143603833904414952634432190114657544454178424020924616515723350778707749817125772467962926386356373289912154831438167899885040445364023527381951378636564391212010397122822120720357";
     // Assume that the lambda is 256; if 128 -> 727 is the last element. 
@@ -228,7 +231,7 @@ namespace membership{
     void compute(public_param* pp, 
     const libsnark::r1cs_gg_ppzksnark_keypair<libsnark::default_r1cs_gg_ppzksnark_pp> snark_key,
     libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, 
-    libff::G1_vector<libff::alt_bn128_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, mem_proof* proof,
+    libff::G1_vector<def_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, mem_proof* proof,
      libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> &snark_proof) {
         libff::start_profiling();
         libff::enter_block("Call to compute");
@@ -358,7 +361,7 @@ namespace membership{
 
         // com_val <- commitIO_crs(s, r, u) 
         libff::enter_block("    Call to compute (generate commit value from s, r, u)");
-        libff::G1<libff::alt_bn128_pp> com_val; 
+        libff::G1<def_pp> com_val; 
 
         membership_snark::membership_statement<libsnark::default_r1cs_gg_ppzksnark_pp> test(std::move(commit_base));
         test.commitIO_crs(bn_str_s, bn_str_r, bn_str_u, com_val);
@@ -409,7 +412,7 @@ namespace membership{
     void optCompute(public_param* pp, 
     const libsnark::r1cs_gg_ppzksnark_keypair<libsnark::default_r1cs_gg_ppzksnark_pp> snark_key,
     libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, 
-    libff::G1_vector<libff::alt_bn128_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, mem_proof* proof,
+    libff::G1_vector<def_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, mem_proof* proof,
      libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> &snark_proof) {
         libff::start_profiling();
         libff::enter_block("Call to Optimized Compute (generate membership proof)");
@@ -546,7 +549,7 @@ namespace membership{
 
         // com_val <- commitIO_crs(s, r, u) 
         libff::enter_block("Call to Optimized Compute (generate commit value from s, r, u)");
-        libff::G1<libff::alt_bn128_pp> com_val; 
+        libff::G1<def_pp> com_val; 
 
         membership_snark::membership_statement<libsnark::default_r1cs_gg_ppzksnark_pp> test(std::move(commit_base));
         test.commitIO_crs(bn_str_s, bn_str_r, bn_str_u, com_val);

@@ -22,6 +22,8 @@
 using namespace std;
 
 namespace membership {
+    using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
+
     typedef struct {
         fmpz_t N;
         fmpz_t V;
@@ -61,12 +63,12 @@ namespace membership {
 
     void compute(public_param* pp, const libsnark::r1cs_gg_ppzksnark_keypair<libsnark::default_r1cs_gg_ppzksnark_pp> snark_key, 
     libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, 
-    libff::G1_vector<libff::alt_bn128_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, 
+    libff::G1_vector<def_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, 
     mem_proof* proof, libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> &snark_proof);
 
     void optCompute(public_param* pp, const libsnark::r1cs_gg_ppzksnark_keypair<libsnark::default_r1cs_gg_ppzksnark_pp> snark_key, 
     libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, 
-    libff::G1_vector<libff::alt_bn128_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, 
+    libff::G1_vector<def_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, 
     mem_proof* proof, libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> &snark_proof);
 
     bool verify(public_param* pp, libsnark::r1cs_gg_ppzksnark_verification_key<libsnark::default_r1cs_gg_ppzksnark_pp> snark_vk, 

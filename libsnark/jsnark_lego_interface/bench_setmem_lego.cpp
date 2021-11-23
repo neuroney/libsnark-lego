@@ -16,6 +16,7 @@
 #include <libsnark/common/default_types/r1cs_gg_ppzksnark_pp.hpp>
 
 #include "benchmark.h"
+#include "bench_lego_utils.hpp"
 
 //#include <format>
 
@@ -92,14 +93,23 @@ auto msecs(auto secs)
 	return secs/1000000;
 }
 
+enum HASH_TYPE {
+	POSEIDON,
+	SHA
+};
+
 int main(int argc, char **argv) {
 
 	using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
 	using rel_input_t = lego_example<def_pp>;
 
 	/* Benchmark parameters */
+
 	size_t nreps = 1;
-	/* ---- */
+	auto hash_type = POSEIDON;
+	
+	/* --------------- */
+
 
 	libff::start_profiling();
 	gadgetlib2::initPublicParamsFromDefaultPp();
@@ -108,8 +118,6 @@ int main(int argc, char **argv) {
 
 	const string arith_file_fmt = "../setmem_rel_inputs/setmem{}.arith";
 	const string input_file_fmt = "../setmem_rel_inputs/setmem{}.in";
-
-
 
 	rel_input_t relation_and_input;
 	bool successBit = false;
@@ -129,6 +137,23 @@ int main(int argc, char **argv) {
 		libff::print_header("## LegoGroth Generator");
 		lego_keypair<def_pp> keypair(lego_kg<def_pp>(relation_and_input.ck, relation_and_input.r1cs()) );
 
+		size_t cp_bound_pub_input_size,  cp_bound_comm_size, cp_bound_constraint_size;
+
+		switch(hash_type) {
+			case HASH_TYPE::POSEIDON:
+			// XXX (fix sizes)
+			cp_bound_pub_input_size = batch_size;
+			cp_bound_comm_size = batch_size;
+			cp_bound_constraint_size = 10*cp_bound_pub_input_size;
+			break;
+
+			default:
+			cerr << "Should not be here";
+			return 1;
+		}
+		
+		LegoBenchGadget<def_pp> cp_bound(cp_bound_pub_input_size, cp_bound_comm_size, cp_bound_constraint_size);
+
 		// defined bench functions
 		auto arith_prv_fn = [&] {
 			cparith_prf = lego_prv<def_pp>(keypair,  relation_and_input.x, 
@@ -139,6 +164,8 @@ int main(int argc, char **argv) {
 		};
 
 		// run benchmarks
+
+		// cparith
 		libff::print_header("## Benchmarking CPArith Prover");
 		fmt_time(fmt::format("## cparith_prv{}", batch_size), 
 			TimeDelta::runAndAverage(arith_prv_fn, nreps));
@@ -146,6 +173,10 @@ int main(int argc, char **argv) {
 		libff::print_header("## Benchmarking CPArith Verifier");
 		fmt_time(fmt::format("## cparith_vfy{}", batch_size), 
 			TimeDelta::runAndAverage(arith_vfy_fn, nreps));
+
+		// cpbound
+		cp_bound.bench_prv(nreps, fmt::format("## cpbound_prv{}", batch_size));
+		cp_bound.bench_vfy(nreps, fmt::format("## cpbound_vfy{}", batch_size));
 
 
 	
