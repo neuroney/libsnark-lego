@@ -93,7 +93,7 @@ struct lego_example {
 
     lego_ck<ppT> ck;
 
-    auto r1cs() const {
+    lego_constraint_system<FieldT> r1cs() const {
         return lego_cs;
     }
 

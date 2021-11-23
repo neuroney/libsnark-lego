@@ -24,8 +24,9 @@ using namespace std;
 template<typename ppT>
 struct LegoBenchGadget {
 
-	lego_keypair<ppT> keypair;
 	lego_example<ppT> input_rel;
+	lego_keypair<ppT> keypair;
+
 	lego_proof<ppT> prf;
 	bool successBit;
 		
