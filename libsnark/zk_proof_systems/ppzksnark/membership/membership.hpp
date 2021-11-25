@@ -51,11 +51,13 @@ namespace membership {
 
     void print_BN(BIGNUM* p, string s);
 
+    void proof_size(mem_proof* proof, bool is_opt);
+
     void Hash1(BIGNUM* res, BIGNUM* sk);
 
     void Hash2(BIGNUM* ret, BIGNUM* W, BIGNUM* C_x, BIGNUM* C_y, BIGNUM* R);
 
-    void setup(public_param* pp, int n);
+    void setup(public_param* pp);
 
     void add(vector<BIGNUM*> &S, vector<BIGNUM*> u);
 

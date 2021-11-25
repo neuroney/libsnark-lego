@@ -44,7 +44,6 @@ namespace membership{
         1291, 1297, 1301, 1303, 1307, 1319, 1321, 1327, 1361, 1367, 1373, 1381, 1399, 1409, 1423, 1427, 1429, 1433, 1439, 1447,
         1451, 1453, 1459, 1471, 1481, 1483, 1487, 1489, 1493, 1499, 1511, 1523, 1531, 1543, 1549, 1553, 1559, 1567, 1571, 1579, 
         1583, 1597, 1601, 1607, 1609, 1613, 1619, 1621};
-    const int len = 512;
 
     // Public parameter for membership proof
     // N is RSA modular where N <- p*q, and V is the group element. 
@@ -109,6 +108,19 @@ namespace membership{
         cout << a << endl << endl;
     }
 
+    void proof_size(mem_proof* proof, bool is_opt) {
+        print_debug("Membership proof size");
+        if(!is_opt) {
+            cout << "k : " << BN_num_bits(proof->k) << endl;
+            cout << "W : " << BN_num_bits(proof->W) << endl;
+        }
+        else {
+            cout << "k' : " << BN_num_bits(proof->opt_k) << endl;
+            cout << "W : " << BN_num_bits(proof->W) << endl;
+            cout << "Q : " << BN_num_bits(proof->Q) << endl;
+        }
+    }
+
     // pk = H(sk); SHA256 
     // TODO: Give more options to choice hash s.t. MiMc, Poseidon..
     void Hash1(BIGNUM* res, BIGNUM* sk) {
@@ -167,7 +179,7 @@ namespace membership{
         }while(!BN_is_prime(ret, 5, NULL, bn_ctx, NULL));
     }
 
-    void setup(public_param* pp, int n) {
+    void setup(public_param* pp) {
         libff::start_profiling();
         libff::enter_block("Call to setup for membership test");
         BN_CTX* ctx = BN_CTX_new();
@@ -295,7 +307,12 @@ namespace membership{
                 BN_mul(bn_s, bn_s, pp->vec_prime[i], bn_ctx);
             }
         }    
-      
+
+        // len = |s| + |u| + |h| + 2*(\lambda)
+        // |h| depends on which hash we use, and in this case we use SHA256m therfore the |h| is 256.
+        // \lambda is the number of odd primes. In current state, we set this as 256. Thus, it sets as pp->vec_prime.size()
+        int len = BN_num_bits(bn_s) + BN_num_bits(bn_u) + 256 + 2 * pp->vec_prime.size();
+
         BN_rand(bn_r, len, 1,  NULL); // r <- {0, 1}^len
         
         vector<string> bn_str_s, bn_str_r, bn_str_u;
@@ -368,8 +385,8 @@ namespace membership{
         
         
 
-        libff::bigint<4> bg_com_x = com_val.X.as_bigint();
-        libff::bigint<4> bg_com_y = com_val.Y.as_bigint();
+        libff::bigint<6> bg_com_x = com_val.X.as_bigint();
+        libff::bigint<6> bg_com_y = com_val.Y.as_bigint();
         char char_arr_x[1024] = "";
         char char_arr_y[1024] = "";
 
@@ -481,8 +498,9 @@ namespace membership{
             }
         }    
 
-        // len = BN_num_bits(u) + BN_num_bits(bn_s) + BN_num_bits(proof->h)
-        // int len = BN_num_bits(bn_u) + BN_num_bits(bn_s) + 256;
+        // len = |l|
+        // since we use l with 256-bits. "len" is set as 256. 
+        int len = 256;
         BN_rand(bn_r, len , 1,  NULL); // r <- {0, 1}^len
         
         vector<string> bn_str_s, bn_str_r, bn_str_u;
@@ -554,8 +572,8 @@ namespace membership{
         membership_snark::membership_statement<libsnark::default_r1cs_gg_ppzksnark_pp> test(std::move(commit_base));
         test.commitIO_crs(bn_str_s, bn_str_r, bn_str_u, com_val);
         
-        libff::bigint<4> bg_com_x = com_val.X.as_bigint();
-        libff::bigint<4> bg_com_y = com_val.Y.as_bigint();
+        libff::bigint<6> bg_com_x = com_val.X.as_bigint();
+        libff::bigint<6> bg_com_y = com_val.Y.as_bigint();
         char char_arr_x[1024] = "";
         char char_arr_y[1024] = "";
 
@@ -685,5 +703,3 @@ namespace membership{
         return vfy_pass;
     }
 }
-
-   
