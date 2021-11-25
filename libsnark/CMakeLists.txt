@@ -22,6 +22,13 @@ endif()
 # options are mutually exclusive. At least as a static library with a
 # simple, reproducible build, users of this library can pick the
 # appropriate options themselves for embedding.
+add_compile_options(
+  -Wall -std=c++14 -lcrypto -lflint -lgmp -lmpfr -llibgmp
+)
+
+set(OPENSSL_USE_STATIC_LIBS TRUE)
+find_package(OpenSSL REQUIRED)
+
 add_library(
   snark
   STATIC
