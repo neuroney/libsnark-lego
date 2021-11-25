@@ -32,7 +32,7 @@
 #include <libsnark/common/default_types/r1cs_gg_ppzksnark_pp.hpp>
 #include <libsnark/relations/constraint_satisfaction_problems/r1cs/examples/r1cs_examples.hpp>
 
-#include <libsnark/jsnark_interface/CircuitReader.hpp>
+// #include <libsnark/jsnark_interface/CircuitReader.hpp>
 #include <libsnark/gadgetlib2/integration.hpp>
 #include <libsnark/gadgetlib2/adapters.hpp>
 #include <libsnark/zk_proof_systems/ppzksnark/r1cs_ppzksnark/examples/run_r1cs_ppzksnark.hpp>
@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
         print_debug("(enter) Membership(opt) test out of circuit");
     }
 
-    setup(pp, args->batching_size);    
+    setup(pp);    
     add(S, user_element);    
     accumulate(pp, S, ACC);
     if(!ver_flag) {
@@ -178,8 +178,7 @@ int main(int argc, char* argv[]) {
         else {
             cout << "Verification Failed" << endl;
         }
-        print_debug("Membership proof size");
-        cout << "k: " << BN_num_bits(proof->k) << endl;
+        proof_size(proof, ver_flag);
     }
     else {
         optCompute(pp, snark_key, snark, commit_base, S, user_element, proof, snark_proof);
@@ -191,8 +190,7 @@ int main(int argc, char* argv[]) {
         else {
             cout << "Verification Failed" << endl;
         }
-        print_debug("Membership proof size");
-        cout << "k': " << BN_num_bits(proof->opt_k) << endl << endl;
+        proof_size(proof, ver_flag);
     }
 
     pp_clear(pp);
