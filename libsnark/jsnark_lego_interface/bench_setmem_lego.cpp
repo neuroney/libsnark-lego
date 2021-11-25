@@ -24,6 +24,8 @@
 
 using namespace std;
 
+const size_t CHUNK_SIZE_BITS = 32;
+
 void init_setmem_input_and_relation(string arith_file, string input_file, auto &input_rel)
 {
 	ProtoboardPtr pb = gadgetlib2::Protoboard::create(gadgetlib2::R1P);
@@ -98,6 +100,47 @@ enum HASH_TYPE {
 	SHA
 };
 
+void set_comm_input_sizes(size_t batchSize, size_t &u_size, size_t &sr_size) {
+		auto bitsizeProdFirst256Primes = 2290;
+        auto bitsize_h = 256;
+        auto bitsize_u = 256*batchSize;
+        auto bitsize_s = bitsizeProdFirst256Primes;
+        auto bitsize_r = bitsize_s+bitsize_h+bitsize_u+128;
+
+		u_size = bitsize_u / CHUNK_SIZE_BITS;
+		sr_size = (bitsize_s+bitsize_r) / CHUNK_SIZE_BITS; 
+    }
+
+template<typename ppT>
+size_t mt_constraints(size_t tree_depth, auto hash_type)
+{
+
+	size_t single_hasher_constraints;
+
+	switch(hash_type) {
+			case HASH_TYPE::POSEIDON:
+			single_hasher_constraints = 300; // upper bound on poseidon_hasher
+			break;
+
+			case HASH_TYPE::SHA:
+			single_hasher_constraints = 27534; // SHA-256
+			break;
+
+			default:
+			cerr << "Should not be here";
+			return 1;
+		}
+
+
+	const size_t digest_len = 256;
+	const size_t hasher_constraints = tree_depth * single_hasher_constraints;
+    const size_t propagator_constraints = tree_depth * digest_len;
+    const size_t authentication_path_constraints = 2 * tree_depth * digest_len;
+    const size_t check_root_constraints = 3 * libff::div_ceil(digest_len, libff::Fr<ppT>::ceil_size_in_bits());
+
+    return hasher_constraints + propagator_constraints + authentication_path_constraints + check_root_constraints;
+}
+
 int main(int argc, char **argv) {
 
 	using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
@@ -107,6 +150,7 @@ int main(int argc, char **argv) {
 
 	size_t nreps = 1;
 	auto hash_type = POSEIDON;
+	size_t tree_depth = 16;
 	
 	/* --------------- */
 
@@ -124,7 +168,7 @@ int main(int argc, char **argv) {
 	lego_proof<def_pp> cparith_prf; 
   
 
-
+	// TODO: make loop
 	size_t batch_size = 1;
 
 	{
@@ -139,18 +183,14 @@ int main(int argc, char **argv) {
 
 		size_t cp_bound_pub_input_size,  cp_bound_comm_size, cp_bound_constraint_size;
 
-		switch(hash_type) {
-			case HASH_TYPE::POSEIDON:
-			// XXX (fix sizes)
-			cp_bound_pub_input_size = batch_size;
-			cp_bound_comm_size = batch_size;
-			cp_bound_constraint_size = 10*cp_bound_pub_input_size;
-			break;
+		cp_bound_pub_input_size = 256;
+		cp_bound_comm_size = batch_size;
 
-			default:
-			cerr << "Should not be here";
-			return 1;
-		}
+		size_t u_size, sr_size;
+		set_comm_input_sizes(batch_size, u_size, sr_size);
+		
+		cp_bound_constraint_size = batch_size*mt_constraints<def_pp>(tree_depth, hash_type);
+	
 		
 		LegoBenchGadget<def_pp> cp_bound(cp_bound_pub_input_size, cp_bound_comm_size, cp_bound_constraint_size);
 
