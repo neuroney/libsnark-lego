@@ -240,11 +240,10 @@ namespace membership{
         libff::leave_block("Call to accumulate");
     }
 
-    void compute(public_param* pp, 
+    void compute(libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, 
     const libsnark::r1cs_gg_ppzksnark_keypair<libsnark::default_r1cs_gg_ppzksnark_pp> snark_key,
-    libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, 
-    libff::G1_vector<def_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, mem_proof* proof,
-     libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> &snark_proof) {
+    libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> &snark_proof,
+    public_param* pp, libff::G1_vector<def_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, mem_proof* proof) {
         libff::start_profiling();
         libff::enter_block("Call to compute");
         vector<int> rand_b; // b_i <- {0, 1}
@@ -313,7 +312,7 @@ namespace membership{
         // \lambda is the number of odd primes. In current state, we set this as 256. Thus, it sets as pp->vec_prime.size()
         int len = BN_num_bits(bn_s) + BN_num_bits(bn_u) + 256 + 2 * pp->vec_prime.size();
 
-        BN_rand(bn_r, len, 1,  NULL); // r <- {0, 1}^len
+        BN_rand(bn_r, len, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY); // r <- {0, 1}^len
         
         vector<string> bn_str_s, bn_str_r, bn_str_u;
         string str_tmp_s, str_tmp_r, str_tmp_u;
@@ -383,8 +382,6 @@ namespace membership{
         membership_snark::membership_statement<libsnark::default_r1cs_gg_ppzksnark_pp> test(std::move(commit_base));
         test.commitIO_crs(bn_str_s, bn_str_r, bn_str_u, com_val);
         
-        
-
         libff::bigint<6> bg_com_x = com_val.X.as_bigint();
         libff::bigint<6> bg_com_y = com_val.Y.as_bigint();
         char char_arr_x[1024] = "";
@@ -426,11 +423,10 @@ namespace membership{
         libff::leave_block("Call to compute");
     }
 
-    void optCompute(public_param* pp, 
+    void optCompute(libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex,
     const libsnark::r1cs_gg_ppzksnark_keypair<libsnark::default_r1cs_gg_ppzksnark_pp> snark_key,
-    libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, 
-    libff::G1_vector<def_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, mem_proof* proof,
-     libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> &snark_proof) {
+    libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> &snark_proof,
+    public_param* pp, libff::G1_vector<def_pp> &commit_base, vector<BIGNUM*> S, vector<BIGNUM*> u, mem_proof* proof) {
         libff::start_profiling();
         libff::enter_block("Call to Optimized Compute (generate membership proof)");
         
@@ -623,9 +619,10 @@ namespace membership{
         libff::leave_block("Call to Optimized compute (generate membership proof)");
     }
 
-    bool verify(public_param* pp, libsnark::r1cs_gg_ppzksnark_verification_key<libsnark::default_r1cs_gg_ppzksnark_pp> snark_vk, 
-    libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, BIGNUM* &ACC, vector<BIGNUM*> S,
-     mem_proof* proof, libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> snark_proof) {
+    bool verify(libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, 
+    libsnark::r1cs_gg_ppzksnark_verification_key<libsnark::default_r1cs_gg_ppzksnark_pp> snark_vk,
+    libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> snark_proof,
+    public_param* pp, BIGNUM* &ACC, vector<BIGNUM*> S, mem_proof* proof) {
         libff::start_profiling();
         libff::enter_block("Call to verification");
         BIGNUM* tmp = BN_new();
@@ -660,9 +657,10 @@ namespace membership{
         return vfy_pass;
     }
 
-    bool optVerify(public_param* pp, libsnark::r1cs_gg_ppzksnark_verification_key<libsnark::default_r1cs_gg_ppzksnark_pp> snark_vk, 
-    libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, BIGNUM* &ACC, vector<BIGNUM*> S,
-     mem_proof* proof, libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> snark_proof) {
+   bool optVerify(libsnark::r1cs_example<libff::Fr<libsnark::default_r1cs_gg_ppzksnark_pp>> snark_ex, 
+    libsnark::r1cs_gg_ppzksnark_verification_key<libsnark::default_r1cs_gg_ppzksnark_pp> snark_vk,
+    libsnark::r1cs_gg_ppzksnark_proof<libsnark::default_r1cs_gg_ppzksnark_pp> snark_proof,
+    public_param* pp, BIGNUM* &ACC, vector<BIGNUM*> S, mem_proof* proof) {
         libff::start_profiling();
         libff::enter_block("Call to Optimized verification");
         BIGNUM* tmp = BN_new();

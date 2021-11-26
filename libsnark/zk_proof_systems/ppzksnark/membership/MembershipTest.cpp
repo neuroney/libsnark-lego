@@ -168,8 +168,9 @@ int main(int argc, char* argv[]) {
     add(S, user_element);    
     accumulate(pp, S, ACC);
     if(!ver_flag) {
-        compute(pp, snark_key, snark, commit_base, S, user_element, proof, snark_proof);
-        success_vfy = verify(pp, snark_key.vk, snark, ACC, S, proof, snark_proof);
+        compute(snark, snark_key, snark_proof, pp, commit_base, S, user_element, proof);
+        success_vfy = verify(snark, snark_key.vk, snark_proof, pp, ACC, S, proof);
+        // success_vfy = verify(pp, snark_key.vk, snark, ACC, S, proof, snark_proof);
        
         print_debug("(leave) Membership(non-opt) test out of circuit");
         if(success_vfy) {
@@ -181,8 +182,9 @@ int main(int argc, char* argv[]) {
         proof_size(proof, ver_flag);
     }
     else {
-        optCompute(pp, snark_key, snark, commit_base, S, user_element, proof, snark_proof);
-        success_vfy = optVerify(pp, snark_key.vk, snark, ACC, S, proof, snark_proof);
+        optCompute(snark, snark_key, snark_proof, pp, commit_base, S, user_element, proof);
+        success_vfy = optVerify(snark, snark_key.vk, snark_proof, pp, ACC, S, proof);
+        // success_vfy = optVerify(pp, snark_key.vk, snark, ACC, S, proof, snark_proof);
         print_debug("(leave) Membership(opt) test out of circuit");
         if(success_vfy) {
             cout << "Verification Pass" << endl;
