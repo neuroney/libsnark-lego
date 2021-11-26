@@ -24,7 +24,18 @@
 
 using namespace std;
 
+using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
+using rel_input_t = lego_example<def_pp>;
+
 const size_t CHUNK_SIZE_BITS = 32;
+const size_t nreps = 2;
+const size_t POSEIDON_SZ = 300;
+const size_t SHA_SZ = 27534;
+
+enum HASH_TYPE {
+	POSEIDON,
+	SHA
+};
 
 void init_setmem_input_and_relation(string arith_file, string input_file, auto &input_rel)
 {
@@ -95,10 +106,7 @@ auto msecs(auto secs)
 	return secs/1000000;
 }
 
-enum HASH_TYPE {
-	POSEIDON,
-	SHA
-};
+
 
 void set_comm_input_sizes(size_t batchSize, size_t &u_size, size_t &sr_size) {
 		auto bitsizeProdFirst256Primes = 2290;
@@ -107,8 +115,8 @@ void set_comm_input_sizes(size_t batchSize, size_t &u_size, size_t &sr_size) {
         auto bitsize_s = bitsizeProdFirst256Primes;
         auto bitsize_r = bitsize_s+bitsize_h+bitsize_u+128;
 
-		u_size = bitsize_u / CHUNK_SIZE_BITS;
-		sr_size = (bitsize_s+bitsize_r) / CHUNK_SIZE_BITS; 
+		u_size = libff::div_ceil(bitsize_u, CHUNK_SIZE_BITS);
+		sr_size = libff::div_ceil((bitsize_s+bitsize_r),CHUNK_SIZE_BITS); 
     }
 
 template<typename ppT>
@@ -119,11 +127,11 @@ size_t mt_constraints(size_t tree_depth, auto hash_type)
 
 	switch(hash_type) {
 			case HASH_TYPE::POSEIDON:
-			single_hasher_constraints = 300; // upper bound on poseidon_hasher
+			single_hasher_constraints = POSEIDON_SZ; // upper bound on poseidon_hasher
 			break;
 
 			case HASH_TYPE::SHA:
-			single_hasher_constraints = 27534; // SHA-256
+			single_hasher_constraints = SHA_SZ; // SHA-256
 			break;
 
 			default:
@@ -141,16 +149,152 @@ size_t mt_constraints(size_t tree_depth, auto hash_type)
     return hasher_constraints + propagator_constraints + authentication_path_constraints + check_root_constraints;
 }
 
+
+template <typename ppT>
+void bench_merkle(size_t batch_size, size_t tree_depth, auto hash_type)
+{
+
+	
+	/* Merkle tree part */
+	size_t cp_merkle_pub_input_size,  cp_merkle_comm_size, cp_merkle_constraint_size;
+
+	cp_merkle_pub_input_size = 256; // merkle tree root
+	cp_merkle_comm_size = batch_size;
+
+	cp_merkle_constraint_size = batch_size*mt_constraints<def_pp>(tree_depth, hash_type);
+
+	LegoBenchGadget<def_pp> cp_merkle(cp_merkle_pub_input_size, cp_merkle_comm_size, cp_merkle_constraint_size);
+
+	auto tag = (hash_type == SHA) ? "MerkleSHA" : "MerklePos";
+	
+	string tag_prv = fmt::format("## {}prv_dpt{}_batch{}", tag, tree_depth, batch_size);
+	string tag_vfy = fmt::format("## {}vfy_dpt{}_batch{}", tag, tree_depth, batch_size);	
+
+	cp_merkle.bench_prv(nreps, tag_prv);
+	cp_merkle.bench_vfy(nreps, tag_vfy);
+
+}
+
+template<typename ppT>
+void bench_rsa(size_t batch_size)
+{
+
+	// common input sizes
+	size_t u_size, sr_size;
+	set_comm_input_sizes(batch_size, u_size, sr_size);
+
+	cout << fmt::format("u_size: {}, sr_size: {}", u_size, sr_size) << endl;
+	
+	const string arith_file_fmt = "../setmem_rel_inputs/setmem{}.arith";
+	const string input_file_fmt = "../setmem_rel_inputs/setmem{}.in";
+
+	rel_input_t relation_and_input;
+	bool successBit = false;
+	lego_proof<def_pp> cparith_prf; 
+
+	/*  Block specific on batch size */ 
+	string arith_file = fmt::format(arith_file_fmt, batch_size);
+	string input_file = fmt::format(input_file_fmt, batch_size);
+
+	// setup 
+	init_setmem_input_and_relation(arith_file, input_file, relation_and_input);
+	libff::print_header("## LegoGroth Generator");
+	lego_keypair<def_pp> keypair(lego_kg<def_pp>(relation_and_input.ck, relation_and_input.r1cs()) );
+
+	
+
+	/* CPBound  part */
+	size_t cp_bound_pub_input_size,  cp_bound_comm_size, cp_bound_constraint_size;
+
+	cp_bound_pub_input_size = 0; // no public input
+	cp_bound_comm_size = batch_size;
+
+	// range proof by hashing the u-s. We use Poseidon for this
+	cp_bound_constraint_size = batch_size*POSEIDON_SZ; 
+
+	LegoBenchGadget<def_pp> cp_bound(cp_bound_pub_input_size, cp_bound_comm_size, cp_bound_constraint_size);
+
+	/* -------- */
+	
+	// defined bench functions for comm and cparith
+
+	// we measure commitment of r,s separately
+	libff::G1<def_pp> cm_sr;
+	vector<libff::Fr<def_pp>> sr(sr_size);
+	for (auto i = 0; i < sr_size; i++) {
+            sr[i] = libff::Fr<ppT>::random_element();
+        }
+	auto comm_fn = [&] {
+		cm_sr = lego_commit<def_pp>(relation_and_input.ck, sr);
+	};
+	
+	auto arith_prv_fn = [&] {
+		cparith_prf = lego_prv<def_pp>(keypair,  relation_and_input.x, 
+			relation_and_input.cm, relation_and_input.opn, relation_and_input.omega);
+	};
+	auto arith_vfy_fn = [&] {
+		successBit = lego_vfy<def_pp>(keypair, relation_and_input.x, relation_and_input.cm, cparith_prf);
+	};
+
+	// run benchmarks
+
+	fmt_time(fmt::format("## commit_rs{}", batch_size), 
+		TimeDelta::runAndAverage(comm_fn, nreps));
+	
+
+	// cparith
+	libff::print_header("## Benchmarking CPArith Prover");
+	fmt_time(fmt::format("## cparith_prv{}", batch_size), 
+		TimeDelta::runAndAverage(arith_prv_fn, nreps));
+
+	libff::print_header("## Benchmarking CPArith Verifier");
+	fmt_time(fmt::format("## cparith_vfy{}", batch_size), 
+		TimeDelta::runAndAverage(arith_vfy_fn, nreps));
+
+	// cpbound
+	cp_bound.bench_prv(nreps, fmt::format("## cpbound_prv{}", batch_size));
+	cp_bound.bench_vfy(nreps, fmt::format("## cpbound_vfy{}", batch_size));
+	
+}
+
+void print_err()
+{
+	cerr << "Error parsing args." << endl;
+	cerr << "Usage:" << endl;
+	cerr << "either, $ ./PROGRAM_NAME merkle [poseidon||sha] depth" << endl;
+	cerr << "or,     $ ./PROGRAM_NAME rsa  (default)" << endl;
+}
+
 int main(int argc, char **argv) {
 
-	using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
-	using rel_input_t = lego_example<def_pp>;
+	// Usage:
+	// either, $ ./PROGRAM_NAME merkle [poseidon||sha] depth
+	// or,     $ ./PROGRAM_NAME rsa  (default)
+
+	std::vector<std::string> args(argv, argv+argc);
+
+	bool doing_rsa = true;
+	auto hash_type = POSEIDON; // default
+	size_t tree_dpt = 16;
+
+	// process args 
+	if (argc > 1 ) {
+		if(args[1] == "rsa") {
+			// do nothing; default
+		} else if (args[1] != "merkle" || argc < 4) {
+			print_err();
+			return 1;
+		} else {
+				doing_rsa = false;
+				if (args[2] == "sha")
+					hash_type = SHA;
+				tree_dpt = stoi(args[3]);
+
+		}
+	}
 
 	/* Benchmark parameters */
 
-	size_t nreps = 1;
-	auto hash_type = POSEIDON;
-	size_t tree_depth = 16;
 	
 	/* --------------- */
 
@@ -159,68 +303,21 @@ int main(int argc, char **argv) {
 	gadgetlib2::initPublicParamsFromDefaultPp();
 	gadgetlib2::GadgetLibAdapter::resetVariableIndex();
 	
-
-	const string arith_file_fmt = "../setmem_rel_inputs/setmem{}.arith";
-	const string input_file_fmt = "../setmem_rel_inputs/setmem{}.in";
-
-	rel_input_t relation_and_input;
-	bool successBit = false;
-	lego_proof<def_pp> cparith_prf; 
-  
-
+	
 	// TODO: make loop
-	size_t batch_size = 1;
+	auto batches = {1, 16, 32, 64, 128};
 
-	{
-		/*  Block specific on batch size */ 
-		string arith_file = fmt::format(arith_file_fmt, batch_size);
-		string input_file = fmt::format(input_file_fmt, batch_size);
-
-		// setup 
-		init_setmem_input_and_relation(arith_file, input_file, relation_and_input);
-		libff::print_header("## LegoGroth Generator");
-		lego_keypair<def_pp> keypair(lego_kg<def_pp>(relation_and_input.ck, relation_and_input.r1cs()) );
-
-		size_t cp_bound_pub_input_size,  cp_bound_comm_size, cp_bound_constraint_size;
-
-		cp_bound_pub_input_size = 256;
-		cp_bound_comm_size = batch_size;
-
-		size_t u_size, sr_size;
-		set_comm_input_sizes(batch_size, u_size, sr_size);
-		
-		cp_bound_constraint_size = batch_size*mt_constraints<def_pp>(tree_depth, hash_type);
-	
-		
-		LegoBenchGadget<def_pp> cp_bound(cp_bound_pub_input_size, cp_bound_comm_size, cp_bound_constraint_size);
-
-		// defined bench functions
-		auto arith_prv_fn = [&] {
-			cparith_prf = lego_prv<def_pp>(keypair,  relation_and_input.x, 
-				relation_and_input.cm, relation_and_input.opn, relation_and_input.omega);
-		};
-		auto arith_vfy_fn = [&] {
-			successBit = lego_vfy<def_pp>(keypair, relation_and_input.x, relation_and_input.cm, cparith_prf);
-		};
-
-		// run benchmarks
-
-		// cparith
-		libff::print_header("## Benchmarking CPArith Prover");
-		fmt_time(fmt::format("## cparith_prv{}", batch_size), 
-			TimeDelta::runAndAverage(arith_prv_fn, nreps));
-
-		libff::print_header("## Benchmarking CPArith Verifier");
-		fmt_time(fmt::format("## cparith_vfy{}", batch_size), 
-			TimeDelta::runAndAverage(arith_vfy_fn, nreps));
-
-		// cpbound
-		cp_bound.bench_prv(nreps, fmt::format("## cpbound_prv{}", batch_size));
-		cp_bound.bench_vfy(nreps, fmt::format("## cpbound_vfy{}", batch_size));
-
-
-	
+	for (size_t batch_size : batches ) {
+		if (doing_rsa) {
+			cout << endl << "## Benchmarking our RSA-based protocol with batch n = " << batch_size << endl << endl;
+			bench_rsa<def_pp>(batch_size);
+		} else {
+			cout << endl << "## Benchmarking " << args[2] << " Merkle with batch n = " << batch_size 
+				<< " and depth " << tree_dpt << endl << endl;
+			bench_merkle<def_pp>(batch_size, tree_dpt, hash_type);
+		} 
 	}
+
 
 	return 0;
 }
