@@ -18,6 +18,10 @@
 #include "benchmark.h"
 #include "bench_lego_utils.hpp"
 
+#include <openssl/rsa.h>
+#include <openssl/bn.h>
+//#include <openssl/sha.h>
+
 //#include <format>
 
 #include <filesystem>
@@ -28,9 +32,12 @@ using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
 using rel_input_t = lego_example<def_pp>;
 
 const size_t CHUNK_SIZE_BITS = 32;
-const size_t nreps = 2;
+const size_t nreps = 10;
 const size_t POSEIDON_SZ = 300;
 const size_t SHA_SZ = 27534;
+
+const char* RSA_2048 = "C7970CEEDCC3B0754490201A7AA613CD73911081C790F5F1A8726F463550BB5B7FF0DB8E1EA1189EC72F93D1650011BD721AEEACC2ACDE32A04107F0648C2813A31F5B0B7765FF8B44B4B6FFC93384B646EB09C7CF5E8592D40EA33C80039F35B4F14A04B51F7BFD781BE4D1673164BA8EB991C2C4D730BBBE35F592BDEF524AF7E8DAEFD26C66FC02C479AF89D64D373F442709439DE66CEB955F3EA37D5159F6135809F85334B5CB1813ADDC80CD05609F10AC6A95AD65872C909525BDAD32BC729592642920F24C61DC5B3C3B7923E56B16A4D9D373D8721F24A3FC0F1B3131F55615172866BCCC30F95054C824E733A5EB6817F7BC16399D48C6361CC7E5";
+
 
 enum HASH_TYPE {
 	POSEIDON,
@@ -117,7 +124,19 @@ void set_comm_input_sizes(size_t batchSize, size_t &u_size, size_t &sr_size) {
 
 		u_size = libff::div_ceil(bitsize_u, CHUNK_SIZE_BITS);
 		sr_size = libff::div_ceil((bitsize_s+bitsize_r),CHUNK_SIZE_BITS); 
-    }
+}
+
+size_t get_bitsize_k(size_t batchSize) {
+		auto bitsizeProdFirst256Primes = 2290;
+        auto bitsize_h = 256;
+        auto bitsize_u = 256*batchSize;
+        auto bitsize_s = bitsizeProdFirst256Primes;
+        auto bitsize_r = bitsize_s+bitsize_h+bitsize_u+128;
+
+	    auto bitsize_k = bitsize_r+1;
+		return bitsize_k;
+}
+
 
 template<typename ppT>
 size_t mt_constraints(size_t tree_depth, auto hash_type)
@@ -257,30 +276,114 @@ void bench_rsa(size_t batch_size)
 	
 }
 
+
+void init_to_rnd(size_t lenbits, BIGNUM **res)
+{
+	auto len = lenbits/4; // hex length
+	char *rnd = new char[len];
+	for (size_t i = 0; i < len; i++) {
+		auto rand_int = (rand() % 16);
+		rnd[i] = (rand_int < 10) ? (rand_int + '0') : (rand_int + 'A' - 10);
+	}
+
+	BN_hex2bn(res, rnd);
+	delete rnd;
+}
+
+template<typename ppT>
+void bench_poke(size_t batch_size, size_t k_bitsize)
+{
+	const size_t ellsize = 256;
+
+	// "setup"
+	BIGNUM *N, *G, *H, *p, *k; 
+	N = BN_new();
+	G = BN_new();
+	H = BN_new();
+	p = BN_new();
+	k = BN_new();
+
+
+	BN_hex2bn(&N, RSA_2048);
+	BN_hex2bn(&G, "2");
+	BN_hex2bn(&H, "3");
+
+	init_to_rnd(ellsize, &p);
+	init_to_rnd(k_bitsize, &k);
+
+	
+	auto prv_fn = [&] {
+		// prv
+		BN_CTX* bn_ctx = BN_CTX_new();
+		BIGNUM* res_expG = BN_new();
+		BIGNUM* res_expH = BN_new();
+		BIGNUM* res_expMul = BN_new();
+		BIGNUM* divres = BN_new();
+		BIGNUM* remres = BN_new();
+
+
+
+		BN_div(divres, remres, k, p, bn_ctx);
+		// upper bound: three exponentiations for ell
+		BN_mod_exp(res_expG, G, k, N, bn_ctx);
+		BN_mod_exp(res_expG, G, k, N, bn_ctx);
+		BN_mod_exp(res_expG, G, k, N, bn_ctx);
+
+
+		BN_CTX_free(bn_ctx);
+	};
+
+	auto vfy_fn = [&]{
+		// vfy
+		BN_CTX* bn_ctx = BN_CTX_new();
+		BIGNUM* res_expG = BN_new();
+		BIGNUM* res_expH = BN_new();
+		BIGNUM* res_expMul = BN_new();
+
+		for (auto i = 1; i <= 2; i++) {
+			BN_mod_exp(res_expG, G, p, N, bn_ctx);
+			BN_mod_exp(res_expH, H, p, N, bn_ctx);
+			BN_mod_mul(res_expMul, res_expG, res_expH, N, bn_ctx);
+		}
+
+		BN_CTX_free(bn_ctx);
+	};
+
+	fmt_time(fmt::format("## poke_prv{}", batch_size), 
+		TimeDelta::runAndAverage(prv_fn, nreps));
+
+	fmt_time(fmt::format("## poke_vfy{}", batch_size), 
+		TimeDelta::runAndAverage(vfy_fn, nreps));
+
+}
+
 void print_err()
 {
 	cerr << "Error parsing args." << endl;
 	cerr << "Usage:" << endl;
 	cerr << "either, $ ./PROGRAM_NAME merkle [poseidon||sha] depth" << endl;
-	cerr << "or,     $ ./PROGRAM_NAME rsa  (default)" << endl;
+	cerr << "or,     $ ./PROGRAM_NAME rsa||pokeonly" << endl;
 }
 
 int main(int argc, char **argv) {
 
 	// Usage:
 	// either, $ ./PROGRAM_NAME merkle [poseidon||sha] depth
-	// or,     $ ./PROGRAM_NAME rsa  (default)
+	// or,     $ ./PROGRAM_NAME rsa||pokeonly  
 
 	std::vector<std::string> args(argv, argv+argc);
 
-	bool doing_rsa = true;
+	bool doing_rsa = false;
+	bool doing_pokeonly = false;
 	auto hash_type = POSEIDON; // default
 	size_t tree_dpt = 16;
 
 	// process args 
 	if (argc > 1 ) {
 		if(args[1] == "rsa") {
-			// do nothing; default
+			doing_rsa = true;
+		} else if (args[1] == "pokeonly") {
+			doing_pokeonly = true;
 		} else if (args[1] != "merkle" || argc < 4) {
 			print_err();
 			return 1;
@@ -307,8 +410,14 @@ int main(int argc, char **argv) {
 	// TODO: make loop
 	auto batches = {1, 16, 32, 64, 128};
 
+	// setup poke = 
+
 	for (size_t batch_size : batches ) {
-		if (doing_rsa) {
+		if (doing_pokeonly) {
+			cout << endl << "## Benchmarking our PoKE component with batch n = " << batch_size << endl << endl;
+			bench_poke<def_pp>(batch_size, get_bitsize_k(batch_size));
+		}
+		else if (doing_rsa) {
 			cout << endl << "## Benchmarking our RSA-based protocol with batch n = " << batch_size << endl << endl;
 			bench_rsa<def_pp>(batch_size);
 		} else {

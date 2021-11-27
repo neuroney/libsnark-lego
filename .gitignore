@@ -54,3 +54,7 @@ build
 *.a
 *.cproject
 *.project
+setmem_rel_inputs/setmem128.arith
+setmem_rel_inputs/setmem128.in
+setmem_rel_inputs/setmem64.arith
+setmem_rel_inputs/setmem64.in
