@@ -32,9 +32,14 @@ using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
 using rel_input_t = lego_example<def_pp>;
 
 const size_t CHUNK_SIZE_BITS = 32;
-const size_t nreps = 10;
+const size_t nreps = 50;
 const size_t POSEIDON_SZ = 300;
 const size_t SHA_SZ = 27534;
+
+const size_t bitsizeProdFirst256Primes = 2290;
+const size_t bitsize_h = 256;
+const size_t bitsize_s = bitsizeProdFirst256Primes;
+
 
 const char* RSA_2048 = "C7970CEEDCC3B0754490201A7AA613CD73911081C790F5F1A8726F463550BB5B7FF0DB8E1EA1189EC72F93D1650011BD721AEEACC2ACDE32A04107F0648C2813A31F5B0B7765FF8B44B4B6FFC93384B646EB09C7CF5E8592D40EA33C80039F35B4F14A04B51F7BFD781BE4D1673164BA8EB991C2C4D730BBBE35F592BDEF524AF7E8DAEFD26C66FC02C479AF89D64D373F442709439DE66CEB955F3EA37D5159F6135809F85334B5CB1813ADDC80CD05609F10AC6A95AD65872C909525BDAD32BC729592642920F24C61DC5B3C3B7923E56B16A4D9D373D8721F24A3FC0F1B3131F55615172866BCCC30F95054C824E733A5EB6817F7BC16399D48C6361CC7E5";
 
@@ -127,10 +132,8 @@ void set_comm_input_sizes(size_t batchSize, size_t &u_size, size_t &sr_size) {
 }
 
 size_t get_bitsize_k(size_t batchSize) {
-		auto bitsizeProdFirst256Primes = 2290;
-        auto bitsize_h = 256;
+
         auto bitsize_u = 256*batchSize;
-        auto bitsize_s = bitsizeProdFirst256Primes;
         auto bitsize_r = bitsize_s+bitsize_h+bitsize_u+128;
 
 	    auto bitsize_k = bitsize_r+1;
@@ -294,24 +297,41 @@ template<typename ppT>
 void bench_poke(size_t batch_size, size_t k_bitsize)
 {
 	const size_t ellsize = 256;
+	const size_t usize = 256;
+
+	const size_t rsa_sz = 2048;
+	const size_t hsize = 256;
+
+	// init vector of u-s
+	vector<BIGNUM *> us(batch_size);
+	for (auto i = 0; i < batch_size; i++) {
+		us[i] = BN_new();
+		init_to_rnd(usize, &us[i]);
+	}
 
 	// "setup"
-	BIGNUM *N, *G, *H, *p, *k; 
+	BIGNUM *N, *G, *H, *p, *k, *h, *s; 
 	N = BN_new();
 	G = BN_new();
 	H = BN_new();
 	p = BN_new();
 	k = BN_new();
 
+	h = BN_new();
+	s = BN_new();
+
 
 	BN_hex2bn(&N, RSA_2048);
-	BN_hex2bn(&G, "2");
-	BN_hex2bn(&H, "3");
+	
+	init_to_rnd(rsa_sz, &G);
+	init_to_rnd(rsa_sz, &H);
 
 	init_to_rnd(ellsize, &p);
 	init_to_rnd(k_bitsize, &k);
 
-	
+	init_to_rnd(hsize, &h);
+	init_to_rnd(bitsize_s, &s);
+
 	auto prv_fn = [&] {
 		// prv
 		BN_CTX* bn_ctx = BN_CTX_new();
@@ -321,13 +341,30 @@ void bench_poke(size_t batch_size, size_t k_bitsize)
 		BIGNUM* divres = BN_new();
 		BIGNUM* remres = BN_new();
 
+		BIGNUM* ures = BN_new();
+
+		// extras: product of u-s, acc^h, acc^s, R
+		for (auto i = 0; i < batch_size; i++) {
+			BN_mul(ures, ures, us[i], bn_ctx);
+		}
+
+		// counts for acc^s
+		BN_mod_exp(res_expG, G, s, N, bn_ctx);
+
+		// counts for acc^h
+		BN_mod_exp(res_expG, G, h, N, bn_ctx);
+
+		// counts for R (k and r are basically same size)
+		BN_mod_exp(res_expG, G, k, N, bn_ctx);
 
 
 		BN_div(divres, remres, k, p, bn_ctx);
 		// upper bound: three exponentiations for ell
 		BN_mod_exp(res_expG, G, k, N, bn_ctx);
+		BN_mod_exp(res_expH, H, k, N, bn_ctx);
 		BN_mod_exp(res_expG, G, k, N, bn_ctx);
-		BN_mod_exp(res_expG, G, k, N, bn_ctx);
+
+
 
 
 		BN_CTX_free(bn_ctx);
@@ -339,6 +376,9 @@ void bench_poke(size_t batch_size, size_t k_bitsize)
 		BIGNUM* res_expG = BN_new();
 		BIGNUM* res_expH = BN_new();
 		BIGNUM* res_expMul = BN_new();
+		
+		// counts for acc^h
+		BN_mod_exp(res_expG, G, h, N, bn_ctx);
 
 		for (auto i = 1; i <= 2; i++) {
 			BN_mod_exp(res_expG, G, p, N, bn_ctx);
@@ -353,7 +393,7 @@ void bench_poke(size_t batch_size, size_t k_bitsize)
 		TimeDelta::runAndAverage(prv_fn, nreps));
 
 	fmt_time(fmt::format("## poke_vfy{}", batch_size), 
-		TimeDelta::runAndAverage(vfy_fn, nreps));
+		TimeDelta::runAndKeepMedian(vfy_fn, nreps));
 
 }
 

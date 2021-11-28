@@ -58,6 +58,17 @@ struct TimeDelta {
 		return out;
 	}
 
+  static double runAndKeepMedian(function<void()> fn, unsigned T)
+	{
+		vector<double> res(T);
+		for (auto i = 0; i < T; i++) {
+			res[i] = timeFunction(fn);
+		}
+    sort(res.begin(), res.end());
+		double out = res[T/2]; // this is our median from the sorted array
+		return out;
+	}
+
     void stop()
     {
       end = chrono::high_resolution_clock::now ();
