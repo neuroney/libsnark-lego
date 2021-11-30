@@ -32,7 +32,7 @@ using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
 using rel_input_t = lego_example<def_pp>;
 
 const size_t CHUNK_SIZE_BITS = 32;
-const size_t nreps = 50;
+const size_t nreps = 2;
 const size_t POSEIDON_SZ = 300;
 const size_t SHA_SZ = 27534;
 
@@ -371,6 +371,16 @@ void bench_poke(size_t batch_size, size_t k_bitsize)
 	};
 
 	auto vfy_fn = [&]{
+			
+	init_to_rnd(rsa_sz, &G);
+	init_to_rnd(rsa_sz, &H);
+
+	init_to_rnd(ellsize, &p);
+	init_to_rnd(k_bitsize, &k);
+
+	init_to_rnd(hsize, &h);
+	init_to_rnd(bitsize_s, &s);
+
 		// vfy
 		BN_CTX* bn_ctx = BN_CTX_new();
 		BIGNUM* res_expG = BN_new();
@@ -448,7 +458,9 @@ int main(int argc, char **argv) {
 	
 	
 	// TODO: make loop
-	auto batches = {1, 16, 32, 64, 128};
+	//auto batches = {1, 16, 32, 64, 128}; // batches rsa
+	//auto batches = {1}; // batches SHA
+	auto batches = {1024}; 
 
 	// setup poke = 
 
