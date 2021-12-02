@@ -1,5 +1,5 @@
 /*
- * run_ppzksnark.cpp
+ * bench_setmem_lego.cpp
  *
  * 		// Runs legogroth16 on JSnark
  *      Author: Matteo Campanelli
@@ -32,7 +32,7 @@ using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
 using rel_input_t = lego_example<def_pp>;
 
 const size_t CHUNK_SIZE_BITS = 32;
-const size_t nreps = 2;
+const size_t nreps = 1;
 const size_t POSEIDON_SZ = 300;
 const size_t SHA_SZ = 27534;
 
@@ -197,6 +197,211 @@ void bench_merkle(size_t batch_size, size_t tree_depth, auto hash_type)
 
 }
 
+void init_to_rnd(size_t lenbits, BIGNUM **res)
+{
+	auto len = lenbits/4; // hex length
+	char *rnd = new char[len];
+	for (size_t i = 0; i < len; i++) {
+		auto rand_int = (rand() % 16);
+		rnd[i] = (rand_int < 10) ? (rand_int + '0') : (rand_int + 'A' - 10);
+	}
+
+	BN_hex2bn(res, rnd);
+	delete rnd;
+}
+
+
+
+template<typename ppT>
+void bench_poke(size_t batch_size, size_t k_bitsize, bool mswaps = false)
+{
+	const size_t ellsize = 256;
+	const size_t usize = 256;
+
+	const size_t rsa_sz = 2048;
+	const size_t hsize = 256;
+
+	// init vector of u-s
+	vector<BIGNUM *> us(batch_size);
+	for (auto i = 0; i < batch_size; i++) {
+		us[i] = BN_new();
+		init_to_rnd(usize, &us[i]);
+	}
+
+	// "setup"
+	BIGNUM *N, *G, *H, *p, *k, *h, *s; 
+	N = BN_new();
+	G = BN_new();
+	H = BN_new();
+	p = BN_new();
+	k = BN_new();
+
+	h = BN_new();
+	s = BN_new();
+
+
+	BN_hex2bn(&N, RSA_2048);
+	
+	init_to_rnd(rsa_sz, &G);
+	init_to_rnd(rsa_sz, &H);
+
+	init_to_rnd(ellsize, &p);
+	init_to_rnd(k_bitsize, &k);
+
+	init_to_rnd(hsize, &h);
+	init_to_rnd(bitsize_s, &s);
+
+	auto prv_fn = [&] {
+		// prv
+		BN_CTX* bn_ctx = BN_CTX_new();
+		BIGNUM* res_expG = BN_new();
+		BIGNUM* res_expH = BN_new();
+		BIGNUM* res_expMul = BN_new();
+		BIGNUM* divres = BN_new();
+		BIGNUM* remres = BN_new();
+
+		BIGNUM* ures = BN_new();
+
+		// extras: product of u-s, acc^h, acc^s, R (the last three not in mswaps)
+		for (auto i = 0; i < batch_size; i++) {
+			BN_mul(ures, ures, us[i], bn_ctx);
+		}
+
+		// we do not do this for mswaps
+		if (!mswaps) {
+
+			// counts for acc^s
+			BN_mod_exp(res_expG, G, s, N, bn_ctx);
+
+			// counts for acc^h
+			BN_mod_exp(res_expG, G, h, N, bn_ctx);
+
+			// counts for R (k and r are basically same size)
+			BN_mod_exp(res_expG, G, k, N, bn_ctx);
+
+		}
+
+		BN_div(divres, remres, k, p, bn_ctx);
+		// upper bound: three exponentiations for ell
+		BN_mod_exp(res_expG, G, k, N, bn_ctx);
+		BN_mod_exp(res_expH, H, k, N, bn_ctx);
+		BN_mod_exp(res_expG, G, k, N, bn_ctx);
+
+
+
+
+		BN_CTX_free(bn_ctx);
+	};
+
+	auto vfy_fn = [&]{
+			
+	init_to_rnd(rsa_sz, &G);
+	init_to_rnd(rsa_sz, &H);
+
+	init_to_rnd(ellsize, &p);
+	init_to_rnd(k_bitsize, &k);
+
+	init_to_rnd(hsize, &h);
+	init_to_rnd(bitsize_s, &s);
+
+		// vfy
+		BN_CTX* bn_ctx = BN_CTX_new();
+		BIGNUM* res_expG = BN_new();
+		BIGNUM* res_expH = BN_new();
+		BIGNUM* res_expMul = BN_new();
+		
+		// counts for acc^h
+		BN_mod_exp(res_expG, G, h, N, bn_ctx);
+
+		for (auto i = 1; i <= 2; i++) {
+			BN_mod_exp(res_expG, G, p, N, bn_ctx);
+			BN_mod_exp(res_expH, H, p, N, bn_ctx);
+			BN_mod_mul(res_expMul, res_expG, res_expH, N, bn_ctx);
+		}
+
+		BN_CTX_free(bn_ctx);
+	};
+
+	fmt_time(fmt::format("## poke_prv{}", batch_size), 
+		TimeDelta::runAndAverage(prv_fn, nreps));
+
+	fmt_time(fmt::format("## poke_vfy{}", batch_size), 
+		TimeDelta::runAndKeepMedian(vfy_fn, nreps));
+
+}
+
+
+size_t mswap_per_op_constraints(bool is_us)
+{
+	size_t h_e, h_in;
+	// assume poseidon
+	h_e = h_in = POSEIDON_SZ;
+	// Numbers from Ozdemir et al.
+	auto split = 388;
+	auto add = 255+16;
+	auto mul = 7563;
+	size_t res = h_e + split + add + mul;
+	// in their case there is also an additional hash
+	if (!is_us)
+		res += h_in; 
+	return 2*res;
+}
+
+size_t mswap_per_prf_constraints(bool is_us)
+{
+	auto c_modell = 2048+16;
+	// cheap regime for both systems
+	return c_modell;
+}
+
+template <typename ppT>
+void bench_mswaps_us(size_t batch_size)
+{
+
+	size_t cp_pub_input_size,  cp_comm_size, cp_constraint_size;
+
+	cp_pub_input_size = 0; 
+	cp_comm_size = batch_size; 
+
+	bool is_us = true;
+	cp_constraint_size = 
+		batch_size*mswap_per_op_constraints(is_us)+
+			mswap_per_prf_constraints(is_us);
+
+	LegoBenchGadget<def_pp> cp_mswap(cp_pub_input_size, cp_comm_size, cp_constraint_size);
+
+	auto tag =  "mswap_us";
+	
+	string tag_prv = fmt::format("## {}prv_batch{}", tag, batch_size);
+	cp_mswap.bench_prv(nreps, tag_prv);
+
+	bool mswaps_flag = true;
+	bench_poke<ppT>(batch_size, get_bitsize_k(batch_size), mswaps_flag);
+}
+
+template <typename ppT>
+void bench_mswaps_them(size_t batch_size)
+{
+
+	size_t cp_pub_input_size,  cp_comm_size, cp_constraint_size;
+
+	cp_pub_input_size = 0; 
+	cp_comm_size = batch_size;
+	bool is_us = false;
+
+	cp_constraint_size = 
+		batch_size*mswap_per_op_constraints(is_us)+
+			mswap_per_prf_constraints(is_us);
+
+	LegoBenchGadget<def_pp> cp_mswap(cp_pub_input_size, cp_comm_size, cp_constraint_size);
+
+	auto tag =  "mswap_them";
+	
+	string tag_prv = fmt::format("## {}prv_batch{}", tag, batch_size);
+	cp_mswap.bench_prv(nreps, tag_prv);
+
+}
+
 template<typename ppT>
 void bench_rsa(size_t batch_size)
 {
@@ -280,139 +485,14 @@ void bench_rsa(size_t batch_size)
 }
 
 
-void init_to_rnd(size_t lenbits, BIGNUM **res)
-{
-	auto len = lenbits/4; // hex length
-	char *rnd = new char[len];
-	for (size_t i = 0; i < len; i++) {
-		auto rand_int = (rand() % 16);
-		rnd[i] = (rand_int < 10) ? (rand_int + '0') : (rand_int + 'A' - 10);
-	}
 
-	BN_hex2bn(res, rnd);
-	delete rnd;
-}
-
-template<typename ppT>
-void bench_poke(size_t batch_size, size_t k_bitsize)
-{
-	const size_t ellsize = 256;
-	const size_t usize = 256;
-
-	const size_t rsa_sz = 2048;
-	const size_t hsize = 256;
-
-	// init vector of u-s
-	vector<BIGNUM *> us(batch_size);
-	for (auto i = 0; i < batch_size; i++) {
-		us[i] = BN_new();
-		init_to_rnd(usize, &us[i]);
-	}
-
-	// "setup"
-	BIGNUM *N, *G, *H, *p, *k, *h, *s; 
-	N = BN_new();
-	G = BN_new();
-	H = BN_new();
-	p = BN_new();
-	k = BN_new();
-
-	h = BN_new();
-	s = BN_new();
-
-
-	BN_hex2bn(&N, RSA_2048);
-	
-	init_to_rnd(rsa_sz, &G);
-	init_to_rnd(rsa_sz, &H);
-
-	init_to_rnd(ellsize, &p);
-	init_to_rnd(k_bitsize, &k);
-
-	init_to_rnd(hsize, &h);
-	init_to_rnd(bitsize_s, &s);
-
-	auto prv_fn = [&] {
-		// prv
-		BN_CTX* bn_ctx = BN_CTX_new();
-		BIGNUM* res_expG = BN_new();
-		BIGNUM* res_expH = BN_new();
-		BIGNUM* res_expMul = BN_new();
-		BIGNUM* divres = BN_new();
-		BIGNUM* remres = BN_new();
-
-		BIGNUM* ures = BN_new();
-
-		// extras: product of u-s, acc^h, acc^s, R
-		for (auto i = 0; i < batch_size; i++) {
-			BN_mul(ures, ures, us[i], bn_ctx);
-		}
-
-		// counts for acc^s
-		BN_mod_exp(res_expG, G, s, N, bn_ctx);
-
-		// counts for acc^h
-		BN_mod_exp(res_expG, G, h, N, bn_ctx);
-
-		// counts for R (k and r are basically same size)
-		BN_mod_exp(res_expG, G, k, N, bn_ctx);
-
-
-		BN_div(divres, remres, k, p, bn_ctx);
-		// upper bound: three exponentiations for ell
-		BN_mod_exp(res_expG, G, k, N, bn_ctx);
-		BN_mod_exp(res_expH, H, k, N, bn_ctx);
-		BN_mod_exp(res_expG, G, k, N, bn_ctx);
-
-
-
-
-		BN_CTX_free(bn_ctx);
-	};
-
-	auto vfy_fn = [&]{
-			
-	init_to_rnd(rsa_sz, &G);
-	init_to_rnd(rsa_sz, &H);
-
-	init_to_rnd(ellsize, &p);
-	init_to_rnd(k_bitsize, &k);
-
-	init_to_rnd(hsize, &h);
-	init_to_rnd(bitsize_s, &s);
-
-		// vfy
-		BN_CTX* bn_ctx = BN_CTX_new();
-		BIGNUM* res_expG = BN_new();
-		BIGNUM* res_expH = BN_new();
-		BIGNUM* res_expMul = BN_new();
-		
-		// counts for acc^h
-		BN_mod_exp(res_expG, G, h, N, bn_ctx);
-
-		for (auto i = 1; i <= 2; i++) {
-			BN_mod_exp(res_expG, G, p, N, bn_ctx);
-			BN_mod_exp(res_expH, H, p, N, bn_ctx);
-			BN_mod_mul(res_expMul, res_expG, res_expH, N, bn_ctx);
-		}
-
-		BN_CTX_free(bn_ctx);
-	};
-
-	fmt_time(fmt::format("## poke_prv{}", batch_size), 
-		TimeDelta::runAndAverage(prv_fn, nreps));
-
-	fmt_time(fmt::format("## poke_vfy{}", batch_size), 
-		TimeDelta::runAndKeepMedian(vfy_fn, nreps));
-
-}
 
 void print_err()
 {
 	cerr << "Error parsing args." << endl;
 	cerr << "Usage:" << endl;
 	cerr << "either, $ ./PROGRAM_NAME merkle [poseidon||sha] depth" << endl;
-	cerr << "or,     $ ./PROGRAM_NAME rsa||pokeonly" << endl;
+	cerr << "or,     $ ./PROGRAM_NAME rsa||pokeonly||mswap" << endl;
 }
 
 int main(int argc, char **argv) {
@@ -425,6 +505,8 @@ int main(int argc, char **argv) {
 
 	bool doing_rsa = false;
 	bool doing_pokeonly = false;
+	bool doing_mswap = false;
+
 	auto hash_type = POSEIDON; // default
 	size_t tree_dpt = 16;
 
@@ -434,11 +516,12 @@ int main(int argc, char **argv) {
 			doing_rsa = true;
 		} else if (args[1] == "pokeonly") {
 			doing_pokeonly = true;
+		} else if (args[1] == "mswap") {
+			doing_mswap = true;
 		} else if (args[1] != "merkle" || argc < 4) {
 			print_err();
 			return 1;
 		} else {
-				doing_rsa = false;
 				if (args[2] == "sha")
 					hash_type = SHA;
 				tree_dpt = stoi(args[3]);
@@ -456,16 +539,18 @@ int main(int argc, char **argv) {
 	gadgetlib2::initPublicParamsFromDefaultPp();
 	gadgetlib2::GadgetLibAdapter::resetVariableIndex();
 	
-	
-	// TODO: make loop
-	//auto batches = {1, 16, 32, 64, 128}; // batches rsa
+	//auto batches = {1, 16, 32, 64, 128}; // batches  rsa
+	auto batches = {1024, 2048, 4096};
 	//auto batches = {1}; // batches SHA
-	auto batches = {1024}; 
-
-	// setup poke = 
+	 
 
 	for (size_t batch_size : batches ) {
-		if (doing_pokeonly) {
+		if (doing_mswap) {
+			cout << endl << "## Benchmarking OUR multiswap protocol with batch n = " << batch_size << endl << endl;
+			bench_mswaps_us<def_pp>(batch_size);
+			cout << endl << "## Benchmarking THEIR multiswap protocol with batch n = " << batch_size << endl << endl;
+			bench_mswaps_them<def_pp>(batch_size);
+		} else if (doing_pokeonly) {
 			cout << endl << "## Benchmarking our PoKE component with batch n = " << batch_size << endl << endl;
 			bench_poke<def_pp>(batch_size, get_bitsize_k(batch_size));
 		}
