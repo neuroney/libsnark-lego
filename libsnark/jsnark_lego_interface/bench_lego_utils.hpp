@@ -16,10 +16,20 @@
 
 #include "benchmark.h"
 
+#include <proc/readproc.h>
 
 #include <filesystem>
 
 using namespace std;
+
+
+void print_mem_usage(string tag)
+{
+	// memory usage
+	struct proc_t mem_usage;
+	look_up_our_self(&mem_usage);
+	cout << fmt::format("## Memory ({}) {} MB", tag, mem_usage.vsize >> 20) << endl;
+}
 
 template<typename ppT>
 struct LegoBenchGadget {
@@ -49,6 +59,7 @@ struct LegoBenchGadget {
 		libff::print_header("Benchmarking");
 		libff::print_header(label.c_str());
 		fmt_time(label, TimeDelta::runAndAverage(prv_fn, nreps));
+		print_mem_usage("prv" + label);
 	}
 
 	// this function must be called after bench_prv is called at least once

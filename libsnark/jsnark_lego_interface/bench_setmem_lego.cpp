@@ -26,6 +26,7 @@
 
 #include <filesystem>
 
+
 using namespace std;
 
 using def_pp = libsnark::default_r1cs_gg_ppzksnark_pp;
@@ -282,11 +283,9 @@ void bench_poke(size_t batch_size, size_t k_bitsize, bool mswaps = false)
 		}
 
 		BN_div(divres, remres, k, p, bn_ctx);
-		// upper bound: three exponentiations for ell
+		// upper bound: one exponentiation for k
 		BN_mod_exp(res_expG, G, k, N, bn_ctx);
-		BN_mod_exp(res_expH, H, k, N, bn_ctx);
-		BN_mod_exp(res_expG, G, k, N, bn_ctx);
-
+	
 
 
 
@@ -294,15 +293,15 @@ void bench_poke(size_t batch_size, size_t k_bitsize, bool mswaps = false)
 	};
 
 	auto vfy_fn = [&]{
-			
-	init_to_rnd(rsa_sz, &G);
-	init_to_rnd(rsa_sz, &H);
+				
+		init_to_rnd(rsa_sz, &G);
+		init_to_rnd(rsa_sz, &H);
 
-	init_to_rnd(ellsize, &p);
-	init_to_rnd(k_bitsize, &k);
+		init_to_rnd(ellsize, &p);
+		init_to_rnd(k_bitsize, &k);
 
-	init_to_rnd(hsize, &h);
-	init_to_rnd(bitsize_s, &s);
+		init_to_rnd(hsize, &h);
+		init_to_rnd(bitsize_s, &s);
 
 		// vfy
 		BN_CTX* bn_ctx = BN_CTX_new();
@@ -313,11 +312,11 @@ void bench_poke(size_t batch_size, size_t k_bitsize, bool mswaps = false)
 		// counts for acc^h
 		BN_mod_exp(res_expG, G, h, N, bn_ctx);
 
-		for (auto i = 1; i <= 2; i++) {
-			BN_mod_exp(res_expG, G, p, N, bn_ctx);
-			BN_mod_exp(res_expH, H, p, N, bn_ctx);
-			BN_mod_mul(res_expMul, res_expG, res_expH, N, bn_ctx);
-		}
+	
+		BN_mod_exp(res_expG, G, p, N, bn_ctx);
+		BN_mod_exp(res_expH, H, p, N, bn_ctx);
+		BN_mod_mul(res_expMul, res_expG, res_expH, N, bn_ctx);
+	
 
 		BN_CTX_free(bn_ctx);
 	};
@@ -368,6 +367,7 @@ void bench_mswaps_us(size_t batch_size)
 		batch_size*mswap_per_op_constraints(is_us)+
 			mswap_per_prf_constraints(is_us);
 
+	cout << cp_constraint_size << endl;
 	LegoBenchGadget<def_pp> cp_mswap(cp_pub_input_size, cp_comm_size, cp_constraint_size);
 
 	auto tag =  "mswap_us";
@@ -495,6 +495,7 @@ void print_err()
 	cerr << "or,     $ ./PROGRAM_NAME rsa||pokeonly||mswap" << endl;
 }
 
+
 int main(int argc, char **argv) {
 
 	// Usage:
@@ -522,12 +523,14 @@ int main(int argc, char **argv) {
 			print_err();
 			return 1;
 		} else {
-				if (args[2] == "sha")
+				if (argc > 2 && args[2] == "sha")
 					hash_type = SHA;
 				tree_dpt = stoi(args[3]);
 
 		}
 	}
+
+
 
 	/* Benchmark parameters */
 
@@ -540,8 +543,8 @@ int main(int argc, char **argv) {
 	gadgetlib2::GadgetLibAdapter::resetVariableIndex();
 	
 	//auto batches = {1, 16, 32, 64, 128}; // batches  rsa
-	auto batches = {1024, 2048, 4096};
-	//auto batches = {1}; // batches SHA
+	//auto batches = {1024, 2048, 4096};
+	auto batches = {16, 64}; // batches SHA
 	 
 
 	for (size_t batch_size : batches ) {
