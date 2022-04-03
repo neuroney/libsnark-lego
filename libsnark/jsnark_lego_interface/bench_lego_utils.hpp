@@ -44,7 +44,7 @@ struct LegoBenchGadget {
 		input_rel(generate_lego_example_with_field_input<ppT>(num_constraints, size_pub_input, size_comm_input)),
 		keypair(lego_kg<ppT>(input_rel.ck, input_rel.r1cs()) )
 	{
-
+		print_mem_usage("KG");
 
 	}
 

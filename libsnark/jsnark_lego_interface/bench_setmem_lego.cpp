@@ -544,7 +544,7 @@ int main(int argc, char **argv) {
 	
 	//auto batches = {1, 16, 32, 64, 128}; // batches  rsa
 	//auto batches = {1024, 2048, 4096};
-	auto batches = {16, 64}; // batches SHA
+	auto batches = {1, 16, 64}; // batches SHA
 	 
 
 	for (size_t batch_size : batches ) {
