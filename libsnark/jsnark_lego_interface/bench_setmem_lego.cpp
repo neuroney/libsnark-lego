@@ -20,6 +20,7 @@
 
 #include <openssl/rsa.h>
 #include <openssl/bn.h>
+
 //#include <openssl/sha.h>
 
 //#include <format>
@@ -209,6 +210,110 @@ void init_to_rnd(size_t lenbits, BIGNUM **res)
 
 	BN_hex2bn(res, rnd);
 	delete rnd;
+}
+
+void bench_agg(unsigned log_batch_size)
+{
+	const size_t start_size = 256;
+	const size_t rsa_sz = 2048;
+
+	size_t cur_size = start_size;
+
+	BN_CTX* bn_ctx = BN_CTX_new();
+
+	BIGNUM *N, *G, *H; 
+	N = BN_new();
+	G = BN_new();
+
+	BN_hex2bn(&N, RSA_2048);
+	init_to_rnd(rsa_sz, &G);
+	init_to_rnd(rsa_sz, &H);
+
+	cout << "Startsize is " << start_size << endl;
+
+	auto agg_fn = [&] {
+		// we do aggregation in a tree fashion
+		for (auto i = log_batch_size-1; i >= 1; i--)
+		{
+			auto m = 1 << i;
+			
+			// do all aggreations at this level of the tree
+			for (auto j = 1; j <= m; j++)
+			{
+				BIGNUM *x, *y;
+				x = BN_new();
+				y = BN_new();
+				init_to_rnd(cur_size, &x);
+				init_to_rnd(cur_size, &y);
+
+				// gcd
+				BIGNUM *r = BN_new();
+				BN_gcd(r, x, y, bn_ctx);
+
+				// exponentiations
+				BIGNUM* res_expG = BN_new();
+				BIGNUM* res_expH = BN_new();
+
+				BN_mod_exp(res_expG, G, x, N, bn_ctx);
+				BN_mod_exp(res_expH, H, y, N, bn_ctx);
+
+				// final product
+				BIGNUM *res_expMul = BN_new();
+				BN_mod_mul(res_expMul, res_expG, res_expH, N, bn_ctx);
+
+			}
+			cur_size *= 2;
+		}
+	}; // end of agg_fn declaration 
+	
+	fmt_time(fmt::format("## agg{}", 1 << log_batch_size), 
+	TimeDelta::runAndAverage(agg_fn, nreps));
+	//print_mem_usage("wit_gen");
+
+	BN_CTX_free(bn_ctx);
+
+}
+
+void bench_naive_witgen(unsigned long set_size)
+{
+	const size_t usize = 256;
+	const size_t rsa_sz = 2048;
+
+	cout << set_size << endl;
+
+
+	vector<BIGNUM *> us(set_size);
+	for (auto i = 0; i < set_size; i++) {
+		us[i] = BN_new();
+		init_to_rnd(usize, &us[i]);
+	}
+
+	BIGNUM *N, *G; 
+	N = BN_new();
+	G = BN_new();
+
+	BN_hex2bn(&N, RSA_2048);
+	init_to_rnd(rsa_sz, &G);
+
+	auto witgen_fn = [&] {
+		// prv
+		BN_CTX* bn_ctx = BN_CTX_new();
+		BIGNUM* res_expG = BN_new();
+		
+		// extras: product of u-s, acc^h, acc^s, R (the last three not in mswaps)
+		for (auto i = 0; i < set_size; i++) {
+			BN_mod_exp(res_expG, G, us[i], N, bn_ctx);
+			//BN_mul(ures, ures, us[i], bn_ctx);
+		}
+
+
+		BN_CTX_free(bn_ctx);
+	};
+
+	fmt_time(fmt::format("## wit_gen{}", set_size), 
+	TimeDelta::runAndAverage(witgen_fn, nreps));
+	print_mem_usage("wit_gen");
+
 }
 
 
@@ -489,6 +594,7 @@ void bench_rsa(size_t batch_size)
 
 void print_err()
 {
+	// OBSOLETE
 	cerr << "Error parsing args." << endl;
 	cerr << "Usage:" << endl;
 	cerr << "either, $ ./PROGRAM_NAME merkle [poseidon||sha] depth" << endl;
@@ -507,6 +613,8 @@ int main(int argc, char **argv) {
 	bool doing_rsa = false;
 	bool doing_pokeonly = false;
 	bool doing_mswap = false;
+	bool doing_witgen = false;
+	bool doing_agg = false;
 
 	auto hash_type = POSEIDON; // default
 	size_t tree_dpt = 16;
@@ -519,6 +627,10 @@ int main(int argc, char **argv) {
 			doing_pokeonly = true;
 		} else if (args[1] == "mswap") {
 			doing_mswap = true;
+		} else if (args[1] == "witgen") {
+			doing_witgen = true;
+		}  else if (args[1] == "agg") {
+			doing_agg = true;
 		} else if (args[1] != "merkle" || argc < 4) {
 			print_err();
 			return 1;
@@ -546,6 +658,20 @@ int main(int argc, char **argv) {
 	//auto batches = {1024, 2048, 4096};
 	auto batches = {1, 16, 64}; // batches SHA
 	 
+	if (doing_witgen) {
+		cout << endl << "## Benchmarking witgen" << endl << endl;
+		unsigned long set_size = 1 << 16;
+		bench_naive_witgen(set_size);
+		bench_naive_witgen(set_size << 16);
+		return 0;
+	}
+
+	if (doing_agg) {
+		cout << endl << "## Benchmarking aggregation" << endl << endl;
+		bench_agg(4); // 2**4 = 16 
+		bench_agg(6); // 2**6 = 64
+		return 0;
+	}
 
 	for (size_t batch_size : batches ) {
 		if (doing_mswap) {
