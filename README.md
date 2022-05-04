@@ -23,7 +23,7 @@ Then, from the "build" directory launch:
 
 To run:
 
-`libsnark/jsnark_lego_interface/bench_setmem_lego`
+`libsnark/jsnark_lego_interface/bench_setmem_lego`(plus appropriate parameters)
 
 ### Known building issues
 
