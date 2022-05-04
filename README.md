@@ -1,7 +1,22 @@
-libsnark-lego: Extending libsnark with Lego capabilities (compatible with JSnark)
+libsnark-lego: libsnark with Lego capabilities (compatible w/ JSnark)
 ================================================================================
 
-To build the setmem benchmarks, first follow the cmake preliminaries as from libsnark (below).
+This repo contains mainly:
+- an extension of libsnark with Lego capabilities (see [LegoSNARK](https://eprint.iacr.org/2019/142) paper). The repo includes in particular an implementation of LegoGro16 (a commit-and-prove version of Groth16). The code is for benchmarking purposes.
+- a good deal of the code used to benchmark SNARKs for accumulators in the [HARiSA](https://eprint.iacr.org/2021/1672) paper (title "Succinct Zero-Knowledge Batch Proofs for Set Accumulators" by Campanelli et al.). Other code for HARiSA (DID and circuit generation) is available upon request.
+
+The bulk of the code for the Lego extensions of Groth16 are in `libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark`.
+The bulk of the code for HARiSA is in `libsnark/jsnark_lego_interface/bench_setmem_lego.cpp`.
+
+
+(Note that this repo is forked from the jsnark's fork of the libsnark library. It therefore follows the same structure and has lots of additional code unrelated to Harisa. Jsnark is authored by Ahmed Kosba; libsnark by SCIPR-LAB and various contributors)
+
+
+Author: Matteo Campanelli
+
+## Building Instructions
+
+To build the benchmarks code, first follow the cmake preliminaries as from libsnark (below).
 Then, from the "build" directory launch:
 
 `make -j8 bench_setmem_lego`
@@ -10,7 +25,16 @@ To run:
 
 `libsnark/jsnark_lego_interface/bench_setmem_lego`
 
-(the rest of this readme is from the original libsnark library)
+### Known building issues
+
+We are aware that, on certain machines, a fresh setup may fail during building complaining about libff missing headers. This is unfortunately a retrocompatibility break that we inherited ourselves. There are fixes, but they are heuristic and platform-dependent. We recommend trying 
+`sudo make install`
+from `build/depende/libff` and try and build after doing that as an option.
+
+The code is not actively maintained. You are welcome to contact us to notify with issues or give us suggestions.
+
+
+# Original README from libsnark library from here
 
 --------------------------------------------------------------------------------
 Authors and contacts
