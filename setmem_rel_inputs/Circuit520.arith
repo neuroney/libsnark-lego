@@ -1,0 +1,96 @@
+total 94
+input 0			 # The one-input wire.
+const-mul-0 in 1 <0> out 1 <1>
+input 2
+input 3
+input 4
+input 5
+input 6
+mul in 2 <2 2> out 1 <7>
+mul in 2 <7 2> out 1 <8>
+mul in 2 <8 2> out 1 <9>
+mul in 2 <9 2> out 1 <10>
+mul in 2 <10 2> out 1 <11>
+mul in 2 <11 2> out 1 <12>
+mul in 2 <3 3> out 1 <13>
+mul in 2 <13 3> out 1 <14>
+mul in 2 <4 4> out 1 <15>
+mul in 2 <15 4> out 1 <16>
+mul in 2 <16 4> out 1 <17>
+mul in 2 <17 4> out 1 <18>
+mul in 2 <18 4> out 1 <19>
+mul in 2 <19 4> out 1 <20>
+mul in 2 <20 4> out 1 <21>
+mul in 2 <21 4> out 1 <22>
+mul in 2 <22 4> out 1 <23>
+mul in 2 <23 4> out 1 <24>
+mul in 2 <24 4> out 1 <25>
+mul in 2 <5 5> out 1 <26>
+mul in 2 <26 5> out 1 <27>
+mul in 2 <6 6> out 1 <28>
+mul in 2 <2 4> out 1 <29>
+mul in 2 <29 5> out 1 <30>
+mul in 2 <2 3> out 1 <31>
+mul in 2 <31 4> out 1 <32>
+mul in 2 <32 5> out 1 <33>
+mul in 2 <2 16> out 1 <34>
+mul in 2 <34 5> out 1 <35>
+mul in 2 <2 17> out 1 <36>
+mul in 2 <36 5> out 1 <37>
+mul in 2 <8 16> out 1 <38>
+mul in 2 <38 5> out 1 <39>
+mul in 2 <7 19> out 1 <40>
+mul in 2 <40 5> out 1 <41>
+mul in 2 <31 20> out 1 <42>
+mul in 2 <42 5> out 1 <43>
+mul in 2 <7 13> out 1 <44>
+mul in 2 <44 18> out 1 <45>
+mul in 2 <45 26> out 1 <46>
+mul in 2 <31 21> out 1 <47>
+mul in 2 <47 5> out 1 <48>
+mul in 2 <48 6> out 1 <49>
+mul in 2 <8 3> out 1 <50>
+mul in 2 <50 21> out 1 <51>
+mul in 2 <51 5> out 1 <52>
+mul in 2 <31 24> out 1 <53>
+mul in 2 <53 5> out 1 <54>
+mul in 2 <51 27> out 1 <55>
+mul in 2 <10 3> out 1 <56>
+mul in 2 <56 19> out 1 <57>
+mul in 2 <57 27> out 1 <58>
+mul in 2 <58 6> out 1 <59>
+mul in 2 <8 14> out 1 <60>
+mul in 2 <60 21> out 1 <61>
+mul in 2 <61 27> out 1 <62>
+mul in 2 <8 13> out 1 <63>
+mul in 2 <63 21> out 1 <64>
+mul in 2 <64 27> out 1 <65>
+mul in 2 <65 28> out 1 <66>
+mul in 2 <11 13> out 1 <67>
+mul in 2 <67 21> out 1 <68>
+mul in 2 <68 26> out 1 <69>
+mul in 2 <69 6> out 1 <70>
+mul in 2 <12 3> out 1 <71>
+mul in 2 <71 24> out 1 <72>
+mul in 2 <72 5> out 1 <73>
+add in 2 <4 15> out 1 <74>
+add in 2 <74 30> out 1 <75>
+add in 2 <75 33> out 1 <76>
+add in 2 <76 35> out 1 <77>
+add in 2 <77 37> out 1 <78>
+add in 2 <78 39> out 1 <79>
+add in 2 <79 40> out 1 <80>
+add in 2 <80 41> out 1 <81>
+add in 2 <81 43> out 1 <82>
+add in 2 <82 46> out 1 <83>
+add in 2 <83 49> out 1 <84>
+add in 2 <84 52> out 1 <85>
+add in 2 <85 54> out 1 <86>
+add in 2 <86 55> out 1 <87>
+add in 2 <87 59> out 1 <88>
+add in 2 <88 62> out 1 <89>
+add in 2 <89 66> out 1 <90>
+add in 2 <90 70> out 1 <91>
+add in 2 <91 73> out 1 <92>
+mul in 2 <92 0> out 1 <93>
+output 93

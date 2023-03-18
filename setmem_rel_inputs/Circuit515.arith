@@ -1,0 +1,61 @@
+total 59
+input 0			 # The one-input wire.
+const-mul-0 in 1 <0> out 1 <1>
+input 2
+input 3
+input 4
+input 5
+input 6
+mul in 2 <2 2> out 1 <7>
+mul in 2 <3 3> out 1 <8>
+mul in 2 <8 3> out 1 <9>
+mul in 2 <9 3> out 1 <10>
+mul in 2 <10 3> out 1 <11>
+mul in 2 <11 3> out 1 <12>
+mul in 2 <4 4> out 1 <13>
+mul in 2 <13 4> out 1 <14>
+mul in 2 <6 6> out 1 <15>
+mul in 2 <15 6> out 1 <16>
+mul in 2 <16 6> out 1 <17>
+mul in 2 <17 6> out 1 <18>
+mul in 2 <8 6> out 1 <19>
+mul in 2 <8 15> out 1 <20>
+mul in 2 <10 15> out 1 <21>
+mul in 2 <12 6> out 1 <22>
+mul in 2 <2 11> out 1 <23>
+mul in 2 <23 4> out 1 <24>
+mul in 2 <24 6> out 1 <25>
+mul in 2 <10 13> out 1 <26>
+mul in 2 <26 16> out 1 <27>
+mul in 2 <7 9> out 1 <28>
+mul in 2 <28 13> out 1 <29>
+mul in 2 <29 16> out 1 <30>
+mul in 2 <2 12> out 1 <31>
+mul in 2 <31 13> out 1 <32>
+mul in 2 <32 15> out 1 <33>
+mul in 2 <12 4> out 1 <34>
+mul in 2 <34 18> out 1 <35>
+mul in 2 <23 14> out 1 <36>
+mul in 2 <36 17> out 1 <37>
+mul in 2 <7 12> out 1 <38>
+mul in 2 <38 14> out 1 <39>
+mul in 2 <39 16> out 1 <40>
+mul in 2 <38 13> out 1 <41>
+mul in 2 <41 5> out 1 <42>
+mul in 2 <42 17> out 1 <43>
+add in 2 <3 8> out 1 <44>
+add in 2 <44 19> out 1 <45>
+add in 2 <45 20> out 1 <46>
+add in 2 <46 11> out 1 <47>
+add in 2 <47 21> out 1 <48>
+add in 2 <48 22> out 1 <49>
+add in 2 <49 25> out 1 <50>
+add in 2 <50 27> out 1 <51>
+add in 2 <51 30> out 1 <52>
+add in 2 <52 33> out 1 <53>
+add in 2 <53 35> out 1 <54>
+add in 2 <54 37> out 1 <55>
+add in 2 <55 40> out 1 <56>
+add in 2 <56 43> out 1 <57>
+mul in 2 <57 0> out 1 <58>
+output 58

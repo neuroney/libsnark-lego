@@ -18,7 +18,7 @@
 
 #include <libff/common/profiling.hpp>
 #include <libff/common/utils.hpp>
-#include <libff/algebra/fields/field_utils.hpp>
+#include <libff/algebra/field_utils/field_utils.hpp>
 
 #include <libff/algebra/curves/alt_bn128/alt_bn128_pp.hpp>
 #include <libff/algebra/curves/public_params.hpp>

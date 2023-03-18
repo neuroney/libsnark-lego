@@ -1,3 +1,4 @@
+#add_subdirectory(fmt EXCLUDE_FROM_ALL)
 add_subdirectory(gtest EXCLUDE_FROM_ALL)
 
 if(${CURVE} STREQUAL "BN128")
@@ -35,10 +36,10 @@ endif()
 
 if(NOT "${USE_LINKED_LIBRARIES}")
   OPTION(IS_LIBFF_PARENT OFF)
-  add_subdirectory(libff)
+  #add_subdirectory(libff)
 
   OPTION(IS_LIBFQFFT_PARENT OFF)
-  add_subdirectory(libfqfft)
+  #add_subdirectory(libfqfft)
 endif()
 
-add_subdirectory(fmt EXCLUDE_FROM_ALL)
+

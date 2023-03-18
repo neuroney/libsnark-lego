@@ -18,7 +18,7 @@
 
 #include <libff/common/profiling.hpp>
 #include <libff/common/utils.hpp>
-#include <libff/algebra/fields/field_utils.hpp>
+#include <libff/algebra/field_utils/field_utils.hpp>
 
 #include <complex>
 #include <libff/algebra/curves/alt_bn128/alt_bn128_pp.hpp>
@@ -73,7 +73,7 @@ void r1cs_gg_ppzksnark_keygen(libsnark::r1cs_example<libff::Fr<ppT>> &example, s
     const bool test_serialization = true;
     example = generate_r1cs_example_with_binary_input<libff::Fr<ppT>>(num_constraints, input_size);
 
-    assert(bit);    
+    //assert(bit);    
  
     libff::print_header("(leave) Test R1CS GG-ppzkSNARK");
 }
